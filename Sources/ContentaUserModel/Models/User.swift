@@ -33,3 +33,30 @@ public final class User<D>: Model where D: QuerySupporting {
     }
 }
 
+extension User {
+    public func willCreate(on connection: Database.Connection) throws -> Future<User> {
+        return Future.map(on: connection) { self }
+    }
+    public func didCreate(on connection: Database.Connection) throws -> Future<User> {
+        return Future.map(on: connection) { self }
+    }
+
+    public func willUpdate(on connection: Database.Connection) throws -> Future<User> {
+        /// Throws an error if the username is invalid
+        //try validateUsername()
+        
+        /// Return the user. No async work is being done, so we must create a future manually.
+        return Future.map(on: connection) { self }
+    }
+    public func didUpdate(on connection: Database.Connection) throws -> Future<User> {
+        return Future.map(on: connection) { self }
+    }
+
+    public func willRead(on connection: Database.Connection) throws -> Future<User> {
+        return Future.map(on: connection) { self }
+    }
+
+    public func willDelete(on connection: Database.Connection) throws -> Future<User> {
+        return Future.map(on: connection) { self }
+    }
+}
