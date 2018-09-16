@@ -20,7 +20,9 @@ public final class Network<D>: Model where D: JoinSupporting {
         return .init("networks")
     }
 
-    public static var createdAtKey: TimestampKey { return \.created }
+    public static var createdAtKey: TimestampKey? {
+        return \Network.created
+    }
     
     var id: Int?
     
@@ -33,7 +35,6 @@ public final class Network<D>: Model where D: JoinSupporting {
     init( ip: IPAddress ) {
         self.ipAddress = ip.address
         self.ipHash = ip.normalized
-        self.created = Date()
     }
 }
 

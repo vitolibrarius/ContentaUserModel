@@ -29,9 +29,6 @@ final class UserTests: XCTestCase {
             let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1)
             let conn = try sqlite.newConnection(on: eventLoop).wait()
 
-            let key : WritableKeyPath<User<SQLiteDatabase>, Date?>? = User<SQLiteDatabase>.createdAtKey
-            print("Key: \(key)")
-
             try ContentaUserMigration_01<SQLiteDatabase>.prepare(on: conn).wait()
 
             try assertTableExists( "user", conn )
