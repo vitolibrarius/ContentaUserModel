@@ -41,10 +41,8 @@ final class UserTests: XCTestCase {
             }
 
             for usr in users {
-//                let ut = try usr.type.get(on: conn).wait()
-                
-//                print( "\(ut.displayName):\t \(usr.username) -> \(usr.created!)")
-                print( "User:\t \(usr.username) -> \(usr.created)")
+                let ut = try usr.type.get(on: conn).wait()
+                print( "\(ut.displayName):\t \(usr.username) -> \(usr.created!)")
             }
             print("\(users)")
             //try file.delete()

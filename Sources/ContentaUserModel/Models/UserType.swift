@@ -14,10 +14,8 @@ public final class UserType<D>: Model where D: QuerySupporting {
     public static var entity: String {
         return "user_type"
     }
-    public static var database: DatabaseIdentifier<D> {
-        return .init("user_types")
-    }
-    
+
+    // MARK: - attributes
     public var code: ID?
     public var displayName: String
     
@@ -25,5 +23,14 @@ public final class UserType<D>: Model where D: QuerySupporting {
     init(code: String, displayName: String) {
         self.code = code
         self.displayName = displayName
+    }
+}
+
+// MARK: - Relations
+
+// UserType ↤⇉ User
+extension UserType {
+    public var users: Children<UserType, User<Database>> {
+        return children(\User.typeCode)
     }
 }

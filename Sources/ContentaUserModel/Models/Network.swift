@@ -16,16 +16,13 @@ public final class Network<D>: Model where D: JoinSupporting {
     public static var entity: String {
         return "network"
     }
-    public static var database: DatabaseIdentifier<D> {
-        return .init("networks")
-    }
 
     public static var createdAtKey: TimestampKey? {
         return \Network.created
     }
     
+    // MARK: - attributes
     var id: Int?
-    
     var ipAddress: String
     var ipHash: String
     var active: Bool = true
@@ -38,6 +35,7 @@ public final class Network<D>: Model where D: JoinSupporting {
     }
 }
 
+// MARK: - Relations
 //extension Network {
 //    public var users: Siblings<Network, User<Database>, UserNetworkJoin<Database>> {
 //        return siblings()

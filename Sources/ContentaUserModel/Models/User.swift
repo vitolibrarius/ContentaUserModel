@@ -16,9 +16,7 @@ public final class User<D>: Model where D: QuerySupporting {
     public static var entity: String {
         return "user"
     }
-    public static var database: DatabaseIdentifier<D> {
-        return .init("users")
-    }
+
     public static var createdAtKey: TimestampKey? {
         return \User.created
     }
@@ -26,6 +24,7 @@ public final class User<D>: Model where D: QuerySupporting {
         return \User.updated
     }
 
+    // MARK: - attributes
     public var id: ID?
     public var typeCode: String
     public var username: String
@@ -42,11 +41,14 @@ public final class User<D>: Model where D: QuerySupporting {
     }
 }
 
-//extension User {
-//    public var type: Parent<User, UserType<Database>> {
-//        return parent(User.typeCode)
-//    }
-//}
+// MARK: - Relations
+
+// User ⇇↦  UserType
+extension User {
+    public var type: Parent<User, UserType<Database>> {
+        return parent(\User.typeCode)
+    }
+}
 
 //extension User where D: JoinSupporting {
 //    public var networks: Siblings<User, Network<Database>, UserNetworkJoin<Database>> {
@@ -54,6 +56,7 @@ public final class User<D>: Model where D: QuerySupporting {
 //    }
 //}
 
+// MARK: - Lifecycle
 extension User {
     public func willCreate(on connection: Database.Connection) throws -> Future<User> {
         return Future.map(on: connection) { self }
