@@ -29,10 +29,28 @@ final class UserTests: XCTestCase {
             let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1)
             let conn = try sqlite.newConnection(on: eventLoop).wait()
 
-            try UserMigration_01<SQLiteDatabase>.prepare(on: conn).wait()
+            let key : WritableKeyPath<User<SQLiteDatabase>, Date?>? = User<SQLiteDatabase>.createdAtKey
+            print("Key: \(key)")
+
+            try ContentaUserMigration_01<SQLiteDatabase>.prepare(on: conn).wait()
 
             try assertTableExists( "user", conn )
-            try file.delete()
+            let users = try User<SQLiteDatabase>.query(on: conn).all().wait()
+            let networks = try Network<SQLiteDatabase>.query(on: conn).all().wait()
+            
+            for nwork in networks {
+                print( "\(nwork.ipAddress)")
+                //                    usr.networks.attach(nwork, on: conn).wait()
+            }
+
+            for usr in users {
+//                let ut = try usr.type.get(on: conn).wait()
+                
+//                print( "\(ut.displayName):\t \(usr.username) -> \(usr.created!)")
+                print( "User:\t \(usr.username) -> \(usr.created)")
+            }
+            print("\(users)")
+            //try file.delete()
         }
         catch  {
             XCTAssertTrue(false, error.localizedDescription)

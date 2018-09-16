@@ -12,26 +12,47 @@ public final class User<D>: Model where D: QuerySupporting {
     public typealias ID = Int
     public typealias Database = D
     public static var idKey: IDKey { return \.id }
+
     public static var entity: String {
         return "user"
     }
     public static var database: DatabaseIdentifier<D> {
         return .init("users")
     }
+    public static var createdAtKey: TimestampKey? {
+        return \User.created
+    }
+    public static var updatedAtKey: TimestampKey? {
+        return \User.updated
+    }
 
     public var id: ID?
+    public var typeCode: String
     public var username: String
     public var email: String
     public var active: Bool = true
     public var created: Date?
-    
+    public var updated: Date?
+
     /// Creates a new `User`.
-    init(username: String, email: String) {
+    init(username: String, email: String, type: String) {
+        self.typeCode = type
         self.username = username
         self.email = email
-        self.created = Date()
     }
 }
+
+//extension User {
+//    public var type: Parent<User, UserType<Database>> {
+//        return parent(User.typeCode)
+//    }
+//}
+
+//extension User where D: JoinSupporting {
+//    public var networks: Siblings<User, Network<Database>, UserNetworkJoin<Database>> {
+//        return siblings()
+//    }
+//}
 
 extension User {
     public func willCreate(on connection: Database.Connection) throws -> Future<User> {
