@@ -35,14 +35,20 @@ final class UserTests: XCTestCase {
             let users = try User<SQLiteDatabase>.query(on: conn).all().wait()
             let networks = try Network<SQLiteDatabase>.query(on: conn).all().wait()
             
-            for nwork in networks {
-                print( "\(nwork.ipAddress)")
-                //                    usr.networks.attach(nwork, on: conn).wait()
+            for usr in users {
+                for nwork in networks {
+                    print( "\(nwork.ipAddress)")
+                    try usr.networks.attach(nwork, on: conn).wait()
+                }
             }
 
             for usr in users {
                 let ut = try usr.type.get(on: conn).wait()
+                let nworks = try usr.networks.query(on: conn).all().wait()
                 print( "\(ut.displayName):\t \(usr.username) -> \(usr.created!)")
+                for n in nworks {
+                    print( "\t\(n.ipHash)")
+                }
             }
             print("\(users)")
             //try file.delete()

@@ -7,6 +7,7 @@ import Foundation
 public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & SchemaSupporting & MigrationSupporting {
     public typealias Database = D
 
+    // MARK: - seed data
     static func sample_userTypes() -> [[String:String]] {
         return [
             [ "code": "UNR",   "displayName": "Unregistered" ],
@@ -26,6 +27,7 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
         ]
     }
 
+    // MARK: - create tables
     static func prepareTableUserType(on connection: Database.Connection) -> Future<Void> {
         return Database.create(UserType.self, on: connection) { builder in
             
@@ -70,6 +72,20 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
         }
     }
 
+    static func prepareTableUserNetworkJoin(on connection: Database.Connection) -> Future<Void> {
+        return Database.create(UserNetworkJoin.self, on: connection) { builder in
+            builder.field(for: \UserNetworkJoin.id, isIdentifier: true)
+            builder.field(for: \UserNetworkJoin.userId)
+            builder.field(for: \UserNetworkJoin.networkId)
+            builder.field(for: \UserNetworkJoin.created)
+            builder.field(for: \UserNetworkJoin.updated)
+            
+            builder.reference(from: \UserNetworkJoin.userId, to: \User<Database>.id)
+            builder.reference(from: \UserNetworkJoin.networkId, to: \Network<Database>.id)
+        }
+    }
+
+    // MARK: - insert data
     static func prepareInsertUserTypes(on connection: Database.Connection) -> [Future<Void>] {
 
         let futures : [EventLoopFuture<Void>] = sample_userTypes().map { usr in
@@ -103,20 +119,19 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
         return futures
     }
 
+    // MARK: -
     public static func prepare(on connection: Database.Connection) -> Future<Void> {
+        var allFutures : [EventLoopFuture<Void>] = [
+            prepareTableUserType(on: connection),
+            prepareTableNetwork(on: connection),
+            prepareTableUser(on: connection),
+            prepareTableUserNetworkJoin(on: connection)
+        ]
         
-        let createUserType : Future<Void> = prepareTableUserType(on: connection)
-        let createNetwork : Future<Void> = prepareTableNetwork(on: connection)
-        let createUser : Future<Void> = prepareTableUser(on: connection)
-        //        let futureCreateIndexes = prepareIndexes(on: connection)
         let insertUserTypes : [Future<Void>] = prepareInsertUserTypes(on: connection)
         let insertUsers : [Future<Void>] = prepareInsertUsers(on: connection)
         let insertNetworks : [Future<Void>] = prepareInsertNetworks(on: connection)
 
-        var allFutures : [EventLoopFuture<Void>] = []
-        allFutures.append(createUserType)
-        allFutures.append(createNetwork)
-        allFutures.append(createUser)
         allFutures.append(contentsOf: insertUserTypes)
         allFutures.append(contentsOf: insertUsers)
         allFutures.append(contentsOf: insertNetworks)

@@ -36,8 +36,8 @@ public final class Network<D>: Model where D: JoinSupporting {
 }
 
 // MARK: - Relations
-//extension Network {
-//    public var users: Siblings<Network, User<Database>, UserNetworkJoin<Database>> {
-//        return siblings()
-//    }
-//}
+extension Network where D: JoinSupporting {
+    public var users: Siblings<Network, User<Database>, UserNetworkJoin<Database>> {
+        return siblings()
+    }
+}

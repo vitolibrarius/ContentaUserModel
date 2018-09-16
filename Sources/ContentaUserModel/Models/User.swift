@@ -50,11 +50,11 @@ extension User {
     }
 }
 
-//extension User where D: JoinSupporting {
-//    public var networks: Siblings<User, Network<Database>, UserNetworkJoin<Database>> {
-//        return siblings()
-//    }
-//}
+extension User where D: JoinSupporting {
+    public var networks: Siblings<User, Network<Database>, UserNetworkJoin<Database>> {
+        return siblings()
+    }
+}
 
 // MARK: - Lifecycle
 extension User {
