@@ -1,0 +1,10 @@
+Version 0.1.0
+* a513abd -  (HEAD -> master, origin/master, origin/HEAD) User Networks many-to-many relationship (Sun Sep 16 12:14:32 2018 -0600) <Vito Librarius>
+* 17a11f2 -  UserType relationship (Sun Sep 16 11:40:17 2018 -0600) <Vito Librarius>
+* da3ee16 -  createdAt for networks (Sun Sep 16 11:11:21 2018 -0600) <Vito Librarius>
+* 3b38a6b -  created and updated automagic, added user type relationship (Sun Sep 16 10:58:27 2018 -0600) <Vito Librarius>
+* cbeebd5 -  testing migrations (Sat Sep 15 14:11:19 2018 -0600) <Vito Librarius>
+* dbba654 -  Test for UserMigration (Thu Sep 13 12:02:08 2018 -0600) <Vito Librarius>
+* 4c3818c -  Update ignores (Sun Sep 9 11:43:24 2018 -0600) <Vito Librarius>
+* c71a26a -  Initial commit (Sun Sep 9 10:54:19 2018 -0600) <Vito Librarius>
+
