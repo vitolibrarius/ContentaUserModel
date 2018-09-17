@@ -5,6 +5,7 @@
 import Async
 import Fluent
 import Foundation
+import ContentaTools
 
 public final class User<D>: Model where D: QuerySupporting {
 
@@ -51,8 +52,31 @@ extension User {
 }
 
 extension User where D: JoinSupporting {
-    public var networks: Siblings<User, Network<Database>, UserNetworkJoin<Database>> {
+    public var networkJoins: Siblings<User, Network<Database>, UserNetworkJoin<Database>> {
         return siblings()
+    }
+
+    public func isAttachedToNetwork(_ network: Network<Database>, on connection: Database.Connection  ) throws -> Bool {
+        return try networkJoins.isAttached(network, on: connection).wait()
+    }
+
+    public func isAttachedToAddress(_ ipaddress: IPAddress, on connection: Database.Connection  ) throws -> Bool {
+        guard let network : Network<Database> = try Network<Database>.forIPAddress( ipaddress, on: connection ) else {
+            return false
+        }
+        return try networkJoins.isAttached(network, on: connection).wait()
+    }
+    
+    public func addAddressIfAbsent(_ ipaddress: IPAddress, on connection: Database.Connection ) throws -> Network<Database> {
+        let network : Network<D> = try Network<Database>.findOrCreateIPAddress( ipaddress, on: connection )
+        return try addNetworkIfAbsent(network, on: connection)
+    }
+
+    public func addNetworkIfAbsent(_ network: Network<Database>, on connection: Database.Connection ) throws -> Network<Database> {
+        if try isAttachedToNetwork(network, on: connection) == false {
+            _ = networkJoins.attach(network, on: connection)
+        }
+        return network
     }
 }
 

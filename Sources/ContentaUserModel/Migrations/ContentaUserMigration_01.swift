@@ -80,6 +80,8 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
             builder.field(for: \UserNetworkJoin.created)
             builder.field(for: \UserNetworkJoin.updated)
             
+            builder.unique(on: \UserNetworkJoin.userId, \UserNetworkJoin.networkId )
+
             builder.reference(from: \UserNetworkJoin.userId, to: \User<Database>.id)
             builder.reference(from: \UserNetworkJoin.networkId, to: \Network<Database>.id)
         }
