@@ -142,6 +142,12 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
     }
     
     public static func revert(on connection: Database.Connection) -> Future<Void> {
-        return Database.delete(User.self, on: connection)
+        let allFutures : [EventLoopFuture<Void>] = [
+            Database.delete(UserNetworkJoin.self, on: connection),
+            Database.delete(User.self, on: connection),
+            Database.delete(Network.self, on: connection),
+            Database.delete(UserType.self, on: connection),
+        ]
+        return Future<Void>.andAll(allFutures, eventLoop: connection.eventLoop)
     }
 }

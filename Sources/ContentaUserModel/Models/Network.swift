@@ -6,7 +6,7 @@ import Fluent
 import Foundation
 import ContentaTools
 
-public final class Network<D>: Model where D: JoinSupporting {
+public final class Network<D>: Model where D: QuerySupporting {
     
     // MARK: ID
     public typealias Database = D

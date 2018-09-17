@@ -37,7 +37,7 @@ final class UserTests: XCTestCase {
             let networks = try Network<SQLiteDatabase>.query(on: conn).all().wait()
             for nwork in networks {
                 nwork.isActive = false
-                try nwork.update(on: conn).wait()
+                _ = nwork.update(on: conn)
             }
             
             for usr in users {
