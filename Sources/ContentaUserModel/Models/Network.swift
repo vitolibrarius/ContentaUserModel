@@ -22,7 +22,7 @@ public final class Network<D>: Model where D: QuerySupporting {
     }
     
     // MARK: - attributes
-    var id: Int?
+    var id: ID?
     var ipAddress: String
     var ipHash: String
     var active: Bool = true

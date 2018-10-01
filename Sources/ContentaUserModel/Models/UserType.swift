@@ -34,3 +34,11 @@ extension UserType {
         return children(\User.typeCode)
     }
 }
+
+// MARK: queries
+extension UserType {
+    public static func forCode( _ code : String, on connection: Database.Connection ) throws -> UserType? {
+        let matches = try UserType.query(on: connection).filter(\UserType.code == code).all().wait()
+        return matches.first
+    }
+}

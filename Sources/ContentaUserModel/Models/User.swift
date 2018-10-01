@@ -51,6 +51,20 @@ extension User {
     }
 }
 
+// User ↤⇉ AccessTokens
+extension User {
+    public var accessTokens: Children<User, AccessToken<Database>> {
+        return children(\AccessToken.userId)
+    }
+}
+
+// MARK: queries
+extension User {
+    public func tokenFor( type: AccessTokenType<Database>, on connection: Database.Connection ) throws -> AccessToken<Database>? {
+        return try AccessToken.tokenFor( user: self, andType: type, on: connection )
+    }
+}
+
 extension User where D: JoinSupporting {
     public var networkJoins: Siblings<User, Network<Database>, UserNetworkJoin<Database>> {
         return siblings()
