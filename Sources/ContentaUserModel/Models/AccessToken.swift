@@ -45,11 +45,11 @@ public final class AccessToken<D>: Model where D: QuerySupporting {
     
     public var isExpired : Bool {
         get {
-            return self.expires != nil && self.expires! > Date()
+            return self.expires != nil && self.expires! < Date()
         }
         set {
             if newValue {
-                self.expires = Date().addingTimeInterval(-100)
+                self.expires = Date().addingTimeInterval(-1000)
             }
         }
     }
@@ -90,5 +90,13 @@ extension AccessToken {
             .filter(\AccessToken.typeCode == type.requireID())
             .all().wait()
         return matches.first
+    }
+
+    public static func findOrCreateToken( user : User<Database>, andType type: AccessTokenType<Database>, on connection: Database.Connection ) throws -> AccessToken {
+        let existing = try AccessToken.tokenFor(user: user, andType: type, on: connection)
+        if existing == nil {
+            return try AccessToken(type: type, user: user).create(on: connection).wait()
+        }
+        return existing!
     }
 }

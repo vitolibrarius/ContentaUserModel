@@ -2,9 +2,11 @@
 //  User.swift
 //
 
+import Foundation
 import Async
 import Fluent
-import Foundation
+import Crypto
+import Validation
 import ContentaTools
 
 public final class User<D>: Model where D: QuerySupporting {
@@ -25,21 +27,59 @@ public final class User<D>: Model where D: QuerySupporting {
         return \User.updated
     }
 
-    // MARK: - attributes
+    // MARK: - PK, FK attributes
     public var id: ID?
     public var typeCode: String
+    
+    // MARK: - auth attributes
     public var username: String
-    public var email: String
+    public var passwordHash: String?
+    public var failedLogins: Int = 0
     public var active: Bool = true
+
+    // MARK: - user meta attributes
+    public var fullname: String
+    public var email: String
+
+    // MARK: - timestamp attributes
     public var created: Date?
     public var updated: Date?
+    public var lastLogin: Date?
+    public var lastFailedLogin: Date?
 
     /// Creates a new `User`.
-    init(username: String, email: String, type: String) {
+    init(name: String, username: String, email: String, type: String) {
         self.typeCode = type
         self.username = username
+        self.fullname = name
         self.email = email
     }
+
+    public func changePassword(_ password: String, on connection: Database.Connection ) throws -> EventLoopFuture<User> {
+        // validate
+        try Validator<String>.password.validate(password)
+
+        self.passwordHash = try BCrypt.hash(password) // 12 iterations, random salt
+        return self.save(on: connection)
+    }
+
+    public func passwordVerify(_ password: String) throws -> Bool {
+        if self.passwordHash == nil {
+            return false
+        }
+        return try BCrypt.verify(password, created: self.passwordHash!)
+    }
+}
+
+// MARK: - validation
+extension User : Validatable {
+    public static func validations() throws -> Validations<User<D>> {
+        var validations = Validations(User.self)
+        try validations.add( \User.username, Validator<String>.alphanumeric)
+        try validations.add( \User.email, Validator<String>.email)
+        return validations
+    }
+    
 }
 
 // MARK: - Relations
@@ -60,8 +100,17 @@ extension User {
 
 // MARK: queries
 extension User {
+    public static func forUsername( _ username : String, on connection: Database.Connection ) throws -> User? {
+        let matches = try User.query(on: connection).filter(\User.username == username).all().wait()
+        return matches.first
+    }
+
     public func tokenFor( type: AccessTokenType<Database>, on connection: Database.Connection ) throws -> AccessToken<Database>? {
         return try AccessToken.tokenFor( user: self, andType: type, on: connection )
+    }
+
+    public func findOrCreateToken( type: AccessTokenType<Database>, on connection: Database.Connection ) throws -> AccessToken<Database> {
+        return try AccessToken<Database>.findOrCreateToken( user: self, andType: type, on: connection )
     }
 }
 

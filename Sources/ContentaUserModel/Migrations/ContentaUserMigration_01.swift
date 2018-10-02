@@ -22,8 +22,8 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
 
     static func sample_users() -> [[String:String]] {
         return [
-            [ "username": "vito",     "type": "ADMIN", "email": "vitolibrarius@gmail.com" ],
-            [ "username": "superman", "type": "REG",   "email": "clark.kent@gmail.com" ]
+            [ "name": "Vito Librarius", "username": "vito",     "type": "ADMIN", "email": "vitolibrarius@gmail.com", "password": "TeSt12345" ],
+            [ "name": "Clark Kent",     "username": "superman", "type": "REG",   "email": "clark.kent@gmail.com",    "password": "Chang3 m3 pleas3" ]
         ]
     }
 
@@ -59,10 +59,15 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
             builder.field(for: \User.id, isIdentifier: true)
             builder.field(for: \User.typeCode)
             builder.field(for: \User.username)
+            builder.field(for: \User.passwordHash)
+            builder.field(for: \User.failedLogins)
+            builder.field(for: \User.fullname)
             builder.field(for: \User.email)
             builder.field(for: \User.active)
             builder.field(for: \User.created)
             builder.field(for: \User.updated)
+            builder.field(for: \User.lastLogin)
+            builder.field(for: \User.lastFailedLogin)
 
             builder.reference(from: \User.typeCode, to: \UserType<Database>.code)
             
@@ -102,12 +107,32 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
 
     static func prepareInsertUsers(on connection: Database.Connection) -> [Future<Void>] {
         let futures : [EventLoopFuture<Void>] = sample_users().map { usr in
+            let fname : String = usr["name"]!
             let uname : String = usr["username"]!
             let email : String = usr["email"]!
             let type : String = usr["type"]!
-            return User<Database>(username: uname, email: email, type: type)
+            return User<Database>( name: fname, username: uname, email: email, type: type)
                 .create(on: connection)
                 .map(to: Void.self) { _ in return }
+        }
+        return futures
+    }
+
+    static func preparePasswordUsers(on connection: Database.Connection) -> [Future<Void>] {
+        let futures : [EventLoopFuture<Void>] = sample_users().map { usr in
+            let pword : String = usr["password"]!
+            let uname : String = usr["username"]!
+
+            var usr : User<Database>? = nil
+            var result : EventLoopFuture<User<Database>>?
+            do {
+                usr = try User<Database>.forUsername(uname, on: connection)
+                result = try (usr?.changePassword(pword, on: connection))!
+            }
+            catch  {
+                print(error.localizedDescription)
+            }
+            return (result?.map(to: Void.self) { _ in return })!
         }
         return futures
     }
@@ -132,10 +157,12 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
         
         let insertUserTypes : [Future<Void>] = prepareInsertUserTypes(on: connection)
         let insertUsers : [Future<Void>] = prepareInsertUsers(on: connection)
+        let updateUsers : [Future<Void>] = preparePasswordUsers(on: connection)
         let insertNetworks : [Future<Void>] = prepareInsertNetworks(on: connection)
 
         allFutures.append(contentsOf: insertUserTypes)
         allFutures.append(contentsOf: insertUsers)
+        allFutures.append(contentsOf: updateUsers)
         allFutures.append(contentsOf: insertNetworks)
 
         return Future<Void>.andAll(allFutures, eventLoop: connection.eventLoop)
