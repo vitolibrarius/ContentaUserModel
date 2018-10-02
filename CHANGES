@@ -1,3 +1,7 @@
+Version 0.2.5:
+* 38155b0 -  (HEAD -> master, origin/master, origin/HEAD) Added more User attributes including passwordHash and supporting validation (Tue Oct 2 10:13:30 2018 -0600) <Vito Librarius>
+* 35761b2 -  Added AccessTokens and AccessTokenTypes (Mon Oct 1 09:33:23 2018 -0600) <Vito Librarius>
+
 Version 0.2.0:
 * b5416f5 -  (HEAD -> master, origin/master, origin/HEAD) Cleanup pass (Mon Sep 17 09:03:05 2018 -0600) <Vito Librarius>
 * cf6a0f5 -  Added some relationship convenience functions and more test cases (Sun Sep 16 19:49:59 2018 -0600) <Vito Librarius>
