@@ -1,3 +1,6 @@
+Version 0.3.1:
+* 62ed407 -  (HEAD -> master) Added migration Manager (Sat Oct 6 12:32:16 2018 -0600) <Vito Librarius>
+
 Version 0.3.0:
 * af2f220 -  (HEAD -> master, origin/master, origin/HEAD) Moved all the model access queries to return Future<>s (Sat Oct 6 12:02:06 2018 -0600) <Vito Librarius>
 
