@@ -76,10 +76,11 @@ final class NetworkTest: XCTestCase {
             XCTAssertEqual(networks.count, 2)
 
             let ipaddress = IPAddress("127.0.0.1")!
-            let nwork = try Network<SQLiteDatabase>.forIPAddress(ipaddress, on: conn)
-            if nwork != nil {
-                print("Found it \(nwork!.ipHash)")
+            let nwork : Network<SQLiteDatabase>? = try Network<SQLiteDatabase>.forIPAddress(ipaddress, on: conn).wait()
+            if nwork == nil {
+                XCTFail()
             }
+
             let matches = try Network<SQLiteDatabase>.query(on: conn).filter(\Network<SQLiteDatabase>.ipAddress == ipaddress.address).all().wait()
             print(matches)
             for usr in users {
@@ -90,7 +91,7 @@ final class NetworkTest: XCTestCase {
             }
 
             for usr in users {
-                let isAtt : Bool = try usr.isAttachedToAddress(IPAddress("127.0.0.1")!, on: conn)
+                let isAtt : Bool = try usr.isAttachedToAddress(IPAddress("127.0.0.1")!, on: conn).wait()
                 print( "\(isAtt ? true :  false)")
             }
 

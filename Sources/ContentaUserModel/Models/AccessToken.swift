@@ -70,33 +70,36 @@ extension AccessToken {
 
 // MARK: queries
 extension AccessToken {
-    public static func forToken( _ token : Token, on connection: Database.Connection ) throws -> AccessToken? {
-        let matches = try AccessToken.query(on: connection)
-            .filter(\AccessToken.token == token)
-            .all().wait()
-        return matches.first
+    public static func forToken( _ token : Token, on connection: Database.Connection ) throws -> Future<AccessToken?> {
+        return Future.flatMap(on: connection) {
+            return AccessToken.query(on: connection).filter(\AccessToken.token == token).first().map { tok in
+                return tok ?? nil
+            }
+        }
     }
 
-    public static func allForUser( _ user : User<Database>, on connection: Database.Connection ) throws -> [AccessToken] {
+    public static func allForUser( _ user : User<Database>, on connection: Database.Connection ) throws -> Future<[AccessToken]> {
         let matches = try AccessToken.query(on: connection)
             .filter(\AccessToken.userId == user.requireID())
-            .all().wait()
+            .all()
         return matches
     }
 
-    public static func tokenFor( user : User<Database>, andType type: AccessTokenType<Database>, on connection: Database.Connection ) throws -> AccessToken? {
-        let matches = try AccessToken.query(on: connection)
-            .filter(\AccessToken.userId == user.requireID())
-            .filter(\AccessToken.typeCode == type.requireID())
-            .all().wait()
-        return matches.first
-    }
-
-    public static func findOrCreateToken( user : User<Database>, andType type: AccessTokenType<Database>, on connection: Database.Connection ) throws -> AccessToken {
-        let existing = try AccessToken.tokenFor(user: user, andType: type, on: connection)
-        if existing == nil {
-            return try AccessToken(type: type, user: user).create(on: connection).wait()
+    public static func tokenFor( user : User<Database>, andType type: AccessTokenType<Database>, on connection: Database.Connection ) throws -> Future<AccessToken?> {
+        return Future.flatMap(on: connection) {
+            return try AccessToken.query(on: connection)
+                .filter(\AccessToken.userId == user.requireID())
+                .filter(\AccessToken.typeCode == type.requireID())
+                .first()
+                .map { tok in return tok ?? nil }
         }
-        return existing!
+    }
+    public static func findOrCreateToken( user : User<Database>, andType type: AccessTokenType<Database>, on connection: Database.Connection ) throws -> Future<AccessToken> {
+        return try AccessToken<Database>.tokenFor( user: user, andType: type, on: connection ).flatMap { t in
+            guard let token = t else {
+                return try AccessToken(type: type, user: user).create(on: connection)
+            }
+            return Future.map(on: connection) { token }
+        }
     }
 }

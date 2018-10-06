@@ -6,6 +6,7 @@ import Foundation
 import Async
 import Fluent
 import Crypto
+import Authentication
 import Validation
 import ContentaTools
 
@@ -98,48 +99,54 @@ extension User {
     }
 }
 
-// MARK: queries
-extension User {
-    public static func forUsername( _ username : String, on connection: Database.Connection ) throws -> User? {
-        let matches = try User.query(on: connection).filter(\User.username == username).all().wait()
-        return matches.first
-    }
-
-    public func tokenFor( type: AccessTokenType<Database>, on connection: Database.Connection ) throws -> AccessToken<Database>? {
-        return try AccessToken.tokenFor( user: self, andType: type, on: connection )
-    }
-
-    public func findOrCreateToken( type: AccessTokenType<Database>, on connection: Database.Connection ) throws -> AccessToken<Database> {
-        return try AccessToken<Database>.findOrCreateToken( user: self, andType: type, on: connection )
-    }
-}
-
 extension User where D: JoinSupporting {
     public var networkJoins: Siblings<User, Network<Database>, UserNetworkJoin<Database>> {
         return siblings()
     }
 
-    public func isAttachedToNetwork(_ network: Network<Database>, on connection: Database.Connection  ) throws -> Bool {
-        return try networkJoins.isAttached(network, on: connection).wait()
+    public func isAttachedToNetwork(_ network: Network<Database>, on connection: Database.Connection  ) throws -> Future<Bool> {
+        return networkJoins.isAttached(network, on: connection)
     }
 
-    public func isAttachedToAddress(_ ipaddress: IPAddress, on connection: Database.Connection  ) throws -> Bool {
-        guard let network : Network<Database> = try Network<Database>.forIPAddress( ipaddress, on: connection ) else {
-            return false
+    public func isAttachedToAddress(_ ipaddress: IPAddress, on connection: Database.Connection  ) throws -> Future<Bool> {
+        return try Network<Database>.forIPAddress( ipaddress, on: connection ).flatMap { nwork in
+            guard let network = nwork else { return Future.map(on: connection) { false }}
+            return self.networkJoins.isAttached(network, on: connection)
         }
-        return try networkJoins.isAttached(network, on: connection).wait()
+    }
+
+    public func addAddressIfAbsent(_ ipaddress: IPAddress, on connection: Database.Connection  ) throws -> Future<Network<Database>> {
+        return try Network<Database>.findOrCreateIPAddress(ipaddress, on: connection).flatMap { nwork in
+            return try self.addNetworkIfAbsent(nwork, on: connection)
+        }
+    }
+
+    public func addNetworkIfAbsent(_ network: Network<Database>, on connection: Database.Connection ) throws -> Future<Network<Database>> {
+        return try isAttachedToNetwork(network, on: connection).flatMap { isAttached in
+            if ( isAttached == false ) {
+                _ = self.networkJoins.attach(network, on: connection)
+            }
+            return Future.map(on: connection) { network }
+        }
+    }
+}
+
+// MARK: - queries
+extension User {
+    public static func forUsername( _ username : String, on connection: Database.Connection ) throws -> Future<User?> {
+        return Future.flatMap(on: connection) {
+            return User.query(on: connection).filter(\User.username == username).first().map { usr in
+                return usr ?? nil
+            }
+        }
+    }
+
+    public func tokenFor( type: AccessTokenType<Database>, on connection: Database.Connection ) throws -> Future<AccessToken<Database>?> {
+        return try AccessToken.tokenFor( user: self, andType: type, on: connection )
     }
     
-    public func addAddressIfAbsent(_ ipaddress: IPAddress, on connection: Database.Connection ) throws -> Network<Database> {
-        let network : Network<D> = try Network<Database>.findOrCreateIPAddress( ipaddress, on: connection )
-        return try addNetworkIfAbsent(network, on: connection)
-    }
-
-    public func addNetworkIfAbsent(_ network: Network<Database>, on connection: Database.Connection ) throws -> Network<Database> {
-        if try isAttachedToNetwork(network, on: connection) == false {
-            _ = networkJoins.attach(network, on: connection)
-        }
-        return network
+    public func findOrCreateToken( type: AccessTokenType<Database>, on connection: Database.Connection ) throws -> Future<AccessToken<Database>> {
+        return try AccessToken<Database>.findOrCreateToken( user: self, andType: type, on: connection )
     }
 }
 
@@ -169,5 +176,34 @@ extension User {
 
     public func willDelete(on connection: Database.Connection) throws -> Future<User> {
         return Future.map(on: connection) { self }
+    }
+}
+
+// MARK: - Content - Parameter
+extension User: Content {}
+extension User: Parameter {}
+
+// MARK: - Basic Authentication
+extension User: BasicAuthenticatable {
+    public var password : String {
+        get {
+            return self.passwordHash != nil ? self.passwordHash! : ""
+        }
+        set {
+            do {
+                try Validator<String>.password.validate(newValue)
+                self.passwordHash = try BCrypt.hash(newValue) // 12 iterations, random salt
+            }
+            catch  {
+                print(error.localizedDescription)
+            }
+        }
+    }
+    public static var usernameKey: UsernameKey {
+        return \User<Database>.username
+    }
+    
+    public static var passwordKey: PasswordKey {
+        return \User<Database>.password
     }
 }

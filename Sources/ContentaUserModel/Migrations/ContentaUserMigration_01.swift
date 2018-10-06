@@ -118,21 +118,16 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
         return futures
     }
 
-    static func preparePasswordUsers(on connection: Database.Connection) -> [Future<Void>] {
-        let futures : [EventLoopFuture<Void>] = sample_users().map { usr in
+    static func preparePasswordUsers(on connection: Database.Connection) throws -> [Future<Void>] {
+        let futures : [EventLoopFuture<Void>] = try sample_users().map { usr in
             let pword : String = usr["password"]!
             let uname : String = usr["username"]!
 
-            var usr : User<Database>? = nil
-            var result : EventLoopFuture<User<Database>>?
-            do {
-                usr = try User<Database>.forUsername(uname, on: connection)
-                result = try (usr?.changePassword(pword, on: connection))!
+            return try User<Database>.forUsername(uname, on: connection).flatMap { usr in
+                guard let user = usr else { return Future.map(on: connection) { Void() } }
+                return try user.changePassword(pword, on: connection)
+                    .map(to: Void.self) { _ in return }
             }
-            catch  {
-                print(error.localizedDescription)
-            }
-            return (result?.map(to: Void.self) { _ in return })!
         }
         return futures
     }
@@ -155,15 +150,22 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
             prepareTableUserNetworkJoin(on: connection)
         ]
         
-        let insertUserTypes : [Future<Void>] = prepareInsertUserTypes(on: connection)
-        let insertUsers : [Future<Void>] = prepareInsertUsers(on: connection)
-        let updateUsers : [Future<Void>] = preparePasswordUsers(on: connection)
-        let insertNetworks : [Future<Void>] = prepareInsertNetworks(on: connection)
+        do {
+            let insertUserTypes : [Future<Void>] = prepareInsertUserTypes(on: connection)
+            allFutures.append(contentsOf: insertUserTypes)
 
-        allFutures.append(contentsOf: insertUserTypes)
-        allFutures.append(contentsOf: insertUsers)
-        allFutures.append(contentsOf: updateUsers)
-        allFutures.append(contentsOf: insertNetworks)
+            let insertUsers : [Future<Void>] = prepareInsertUsers(on: connection)
+            allFutures.append(contentsOf: insertUsers)
+
+            let updateUsers : [Future<Void>] = try preparePasswordUsers(on: connection)
+            allFutures.append(contentsOf: updateUsers)
+
+            let insertNetworks : [Future<Void>] = prepareInsertNetworks(on: connection)
+            allFutures.append(contentsOf: insertNetworks)
+        }
+        catch {
+            return connection.eventLoop.newFailedFuture(error: error)
+        }
 
         return Future<Void>.andAll(allFutures, eventLoop: connection.eventLoop)
     }

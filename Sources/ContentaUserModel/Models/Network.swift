@@ -53,16 +53,20 @@ extension Network where D: JoinSupporting {
 
 // MARK: queries
 extension Network {
-    public static func forIPAddress( _ ip : IPAddress, on connection: Database.Connection ) throws -> Network? {
-        let matches = try Network.query(on: connection).filter(\Network.ipAddress == ip.address).all().wait()
-        return matches.first
+    public static func forIPAddress( _ ip : IPAddress, on connection: Database.Connection ) throws -> Future<Network?> {
+        return Future.flatMap(on: connection) {
+            return Network.query(on: connection).filter(\Network.ipAddress == ip.address).first().map { tok in
+                return tok ?? nil
+            }
+        }
     }
 
-    public static func findOrCreateIPAddress( _ ip : IPAddress, on connection: Database.Connection ) throws -> Network {
-        let matches = try Network.query(on: connection).filter(\Network.ipAddress == ip.address).all().wait()
-        if matches.count == 0 {
-            return try Network(ip: ip).create(on: connection).wait()
+    public static func findOrCreateIPAddress( _ ip : IPAddress, on connection: Database.Connection ) throws -> Future<Network> {
+        return try Network<Database>.forIPAddress( ip, on: connection ).flatMap { nwork in
+            guard let network = nwork else {
+                return Network(ip: ip).create(on: connection)
+            }
+            return Future.map(on: connection) { network }
         }
-        return matches.first!
     }
 }

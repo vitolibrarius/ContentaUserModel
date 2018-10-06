@@ -39,8 +39,11 @@ extension AccessTokenType {
 
 // MARK: queries
 extension AccessTokenType {
-    public static func forCode( _ code : String, on connection: Database.Connection ) throws -> AccessTokenType? {
-        let matches = try AccessTokenType.query(on: connection).filter(\AccessTokenType.code == code).all().wait()
-        return matches.first
+    public static func forCode( _ code : String, on connection: Database.Connection ) throws -> Future<AccessTokenType?> {
+        return Future.flatMap(on: connection) {
+            return AccessTokenType.query(on: connection).filter(\AccessTokenType.code == code).first().map { tok in
+                return tok ?? nil
+            }
+        }
     }
 }

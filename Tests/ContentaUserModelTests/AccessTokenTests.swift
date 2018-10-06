@@ -65,12 +65,12 @@ final class AccessTokenTests: XCTestCase {
             try assertTableExists( "access_token_type", conn )
             try assertTableExists( "access_token", conn )
 
-            let apiType : AccessTokenType = try AccessTokenType<SQLiteDatabase>.forCode("API", on: conn)!
+            let apiType : AccessTokenType? = try AccessTokenType<SQLiteDatabase>.forCode("API", on: conn).wait()
             XCTAssertNotNil(apiType)
 
             let users = try User<SQLiteDatabase>.query(on: conn).all().wait()
             for usr in users {
-                let accessToken = try AccessToken(type: apiType, user: usr).create(on: conn).wait()
+                let accessToken = try AccessToken(type: apiType!, user: usr).create(on: conn).wait()
                 print( "\(usr.username) - \(accessToken.token) - \(accessToken.expires!)")
             }
 
@@ -98,7 +98,7 @@ final class AccessTokenTests: XCTestCase {
             try assertTableExists( "access_token_type", conn )
             try assertTableExists( "access_token", conn )
 
-            let apiType : AccessTokenType = try AccessTokenType<SQLiteDatabase>.forCode("API", on: conn)!
+            let apiType : AccessTokenType? = try AccessTokenType<SQLiteDatabase>.forCode("API", on: conn).wait()
             XCTAssertNotNil(apiType)
 
             let tokenTypes = try AccessTokenType<SQLiteDatabase>.query(on: conn).all().wait()
@@ -111,7 +111,7 @@ final class AccessTokenTests: XCTestCase {
             }
 
             for usr in users {
-                let userAPIToken = try usr.tokenFor(type: apiType, on: conn)
+                let userAPIToken = try usr.tokenFor(type: apiType!, on: conn).wait()
                 XCTAssertNotNil(userAPIToken)
                 XCTAssertFalse(userAPIToken!.isExpired)
 
@@ -120,7 +120,7 @@ final class AccessTokenTests: XCTestCase {
             }
 
             let allTokens = try AccessToken<SQLiteDatabase>.query(on: conn).all().wait()
-            let apiCode = try apiType.requireID()
+            let apiCode = try apiType!.requireID()
             for tok in allTokens {
                 XCTAssertTrue( tok.isExpired || tok.typeCode != apiCode )
                 let testFetch = try AccessToken<SQLiteDatabase>.forToken(tok.token, on: conn)

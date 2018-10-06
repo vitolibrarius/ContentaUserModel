@@ -13,6 +13,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/vapor/vapor.git", from: "3.0.0"),
+        .package(url: "https://github.com/vapor/auth.git", from: "2.0.0"),
         .package(url: "https://github.com/vapor/fluent.git", from: "3.0.0"),
         .package(url: "https://github.com/vapor/fluent-sqlite.git", from: "3.0.0"),
         .package(url: "https://github.com/vitolibrarius/ContentaTools.git", from: "0.0.0"),
@@ -21,6 +22,7 @@ let package = Package(
         .target(name: "ContentaUserModel", dependencies: [
             "Fluent",
             "Vapor",
+            "Authentication",
             "ContentaTools"
         ]),
         .testTarget(name: "ContentaUserModelTests", dependencies: [

@@ -44,7 +44,7 @@ final class UserTests: XCTestCase {
             
             for usr in users {
                 for ip in [IPAddress("192.168.1.1")!, IPAddress("192.168.1.2")!, IPAddress("192.168.1.3")! ] {
-                    let nwork : Network<SQLiteDatabase> = try usr.addAddressIfAbsent(ip, on: conn)
+                    let nwork : Network<SQLiteDatabase> = try usr.addAddressIfAbsent(ip, on: conn).wait()
                     print( "\(ip.address) .. \(nwork.ipHash)")
                 }
             }
@@ -123,18 +123,18 @@ final class UserTests: XCTestCase {
             let users = try User<SQLiteDatabase>.query(on: conn).all().wait()
             XCTAssertEqual(users.count, 2)
             
-            guard let vito: User<SQLiteDatabase> = try User<SQLiteDatabase>.forUsername("vito", on: conn) else {
+            let vito: User<SQLiteDatabase>? = try User<SQLiteDatabase>.forUsername("vito", on: conn).wait()
+            if vito == nil {
                 XCTFail()
-                return
             }
             
             //XCTAssertNil(try vito.changePassword("", on: conn))
-            XCTAssertTrue(try vito.passwordVerify("TeSt12345"))
-            XCTAssertFalse(try vito.passwordVerify("C0nt3nta"))
+            XCTAssertTrue(try vito!.passwordVerify("TeSt12345"))
+            XCTAssertFalse(try vito!.passwordVerify("C0nt3nta"))
 
-            _ = try vito.changePassword("C0nt3nta", on: conn).wait()
-            XCTAssertFalse(try vito.passwordVerify("TeSt12345"))
-            XCTAssertTrue(try vito.passwordVerify("C0nt3nta"))
+            _ = try vito!.changePassword("C0nt3nta", on: conn).wait()
+            XCTAssertFalse(try vito!.passwordVerify("TeSt12345"))
+            XCTAssertTrue(try vito!.passwordVerify("C0nt3nta"))
             
             try file.delete()
         }
@@ -161,23 +161,23 @@ final class UserTests: XCTestCase {
             let users = try User<SQLiteDatabase>.query(on: conn).all().wait()
             XCTAssertEqual(users.count, 2)
             
-            guard let vito: User<SQLiteDatabase> = try User<SQLiteDatabase>.forUsername("vito", on: conn) else {
+            let vito: User<SQLiteDatabase>? = try User<SQLiteDatabase>.forUsername("vito", on: conn).wait()
+            if vito == nil {
                 XCTFail()
-                return
             }
 
             let ipaddress = IPAddress("127.0.0.1")!
-            let nwork = try Network<SQLiteDatabase>.forIPAddress(ipaddress, on: conn)
+            let nwork = try Network<SQLiteDatabase>.forIPAddress(ipaddress, on: conn).wait()
             XCTAssertNotNil(nwork)
-            _ = try vito.addNetworkIfAbsent(nwork!, on: conn)
+            _ = try vito!.addNetworkIfAbsent(nwork!, on: conn)
 
-            let apiType : AccessTokenType = try AccessTokenType<SQLiteDatabase>.forCode("API", on: conn)!
+            let apiType = try AccessTokenType<SQLiteDatabase>.forCode("API", on: conn).wait()
             XCTAssertNotNil(apiType)
-            let token = try vito.findOrCreateToken(type: apiType, on: conn)
+            let token = try vito!.findOrCreateToken(type: apiType!, on: conn).wait()
             XCTAssertNotNil(token)
 
             // delete vito
-            _ = try vito.delete(on: conn).wait()
+            _ = try vito!.delete(on: conn).wait()
 
 //            try file.delete()
         }
