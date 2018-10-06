@@ -1,3 +1,6 @@
+Version 0.3.0:
+* af2f220 -  (HEAD -> master, origin/master, origin/HEAD) Moved all the model access queries to return Future<>s (Sat Oct 6 12:02:06 2018 -0600) <Vito Librarius>
+
 Version 0.2.5:
 * 38155b0 -  (HEAD -> master, origin/master, origin/HEAD) Added more User attributes including passwordHash and supporting validation (Tue Oct 2 10:13:30 2018 -0600) <Vito Librarius>
 * 35761b2 -  Added AccessTokens and AccessTokenTypes (Mon Oct 1 09:33:23 2018 -0600) <Vito Librarius>
