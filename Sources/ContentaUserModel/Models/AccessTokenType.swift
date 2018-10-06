@@ -5,6 +5,8 @@
 import Async
 import Fluent
 import Foundation
+import Vapor
+import Validation
 
 public final class AccessTokenType<D>: Model where D: QuerySupporting {
     // MARK: ID
@@ -47,3 +49,7 @@ extension AccessTokenType {
         }
     }
 }
+
+// MARK: - Content - Parameter
+extension AccessTokenType: Content {}
+extension AccessTokenType: Parameter {}

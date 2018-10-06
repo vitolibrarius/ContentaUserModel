@@ -5,6 +5,8 @@
 import Fluent
 import Foundation
 import ContentaTools
+import Vapor
+import Validation
 
 public final class Network<D>: Model where D: QuerySupporting {
     
@@ -70,3 +72,7 @@ extension Network {
         }
     }
 }
+
+// MARK: - Content - Parameter
+extension Network: Content {}
+extension Network: Parameter {}

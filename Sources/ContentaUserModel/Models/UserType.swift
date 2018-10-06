@@ -5,6 +5,8 @@
 import Async
 import Fluent
 import Foundation
+import Vapor
+import Validation
 
 public final class UserType<D>: Model where D: QuerySupporting {
     // MARK: ID
@@ -45,3 +47,7 @@ extension UserType {
         }
     }
 }
+
+// MARK: - Content - Parameter
+extension UserType: Content {}
+extension UserType: Parameter {}
