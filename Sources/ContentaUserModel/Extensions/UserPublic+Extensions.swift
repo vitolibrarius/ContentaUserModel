@@ -13,7 +13,7 @@ public protocol PublicConvertable {
 }
 
 extension Future where T: PublicConvertable {
-    func convertToPublic() -> Future<T.PublicType?> {
+    public func convertToPublic() -> Future<T.PublicType?> {
         return self.map({ (item) -> T.PublicType? in
             return item.convertToPublic() ?? nil
         })
