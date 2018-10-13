@@ -210,10 +210,7 @@ final class UserTests: XCTestCase {
             // test Future<User> convert Future<User.Public>
             let futureSuperman: Future<User<SQLiteDatabase>?> = try User<SQLiteDatabase>.forUsername("superman", on: conn)
             let x = futureSuperman.convertToPublic()
-            guard let publicSuperman = try x.wait() else {
-                XCTFail()
-                return
-            }
+            let publicSuperman = try x.wait()
             let superman: User<SQLiteDatabase>? = try futureSuperman.wait()
             XCTAssertNotEqual(try vito!.requireID(), publicSuperman.id)
             XCTAssertEqual(try superman!.requireID(), publicSuperman.id)
