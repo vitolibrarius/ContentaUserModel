@@ -1,3 +1,6 @@
+Version 0.3.3:
+* 628e03f -  (HEAD -> master, origin/master, origin/HEAD, GenericsTest) Added mapping logic for User.Public wrapper support (Sat Oct 13 14:17:26 2018 -0600) <Vito Librarius>
+
 Version 0.3.2:
 * 3c67f5e -  (HEAD -> master) Added Content and Parameter extensions (Sat Oct 6 12:44:27 2018 -0600) <Vito Librarius>
 
