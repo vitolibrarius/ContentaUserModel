@@ -82,24 +82,24 @@ extension User where D: JoinSupporting {
         return siblings()
     }
 
-    public func isAttachedToNetwork(_ network: Network<Database>, on connection: Database.Connection  ) throws -> Future<Bool> {
+    public func isAttachedToNetwork(_ network: Network<Database>, on connection: DatabaseConnectable  ) throws -> Future<Bool> {
         return networkJoins.isAttached(network, on: connection)
     }
 
-    public func isAttachedToAddress(_ ipaddress: IPAddress, on connection: Database.Connection  ) throws -> Future<Bool> {
+    public func isAttachedToAddress(_ ipaddress: IPAddress, on connection: DatabaseConnectable  ) throws -> Future<Bool> {
         return try Network<Database>.forIPAddress( ipaddress, on: connection ).flatMap { nwork in
             guard let network = nwork else { return Future.map(on: connection) { false }}
             return self.networkJoins.isAttached(network, on: connection)
         }
     }
 
-    public func addAddressIfAbsent(_ ipaddress: IPAddress, on connection: Database.Connection  ) throws -> Future<Network<Database>> {
+    public func addAddressIfAbsent(_ ipaddress: IPAddress, on connection: DatabaseConnectable  ) throws -> Future<Network<Database>> {
         return try Network<Database>.findOrCreateIPAddress(ipaddress, on: connection).flatMap { nwork in
             return try self.addNetworkIfAbsent(nwork, on: connection)
         }
     }
 
-    public func addNetworkIfAbsent(_ network: Network<Database>, on connection: Database.Connection ) throws -> Future<Network<Database>> {
+    public func addNetworkIfAbsent(_ network: Network<Database>, on connection: DatabaseConnectable ) throws -> Future<Network<Database>> {
         return try isAttachedToNetwork(network, on: connection).flatMap { isAttached in
             if ( isAttached == false ) {
                 _ = self.networkJoins.attach(network, on: connection)
@@ -111,7 +111,7 @@ extension User where D: JoinSupporting {
 
 // MARK: - queries
 extension User {
-    public static func forUsername( _ username : String, on connection: Database.Connection ) throws -> Future<User?> {
+    public static func forUsername( _ username : String, on connection: DatabaseConnectable ) throws -> Future<User?> {
         return Future.flatMap(on: connection) {
             return User.query(on: connection).filter(\User.username == username).first().map { usr in
                 return usr ?? nil
@@ -119,7 +119,7 @@ extension User {
         }
     }
 
-    public static func forEmail( _ email : String, on connection: Database.Connection ) throws -> Future<User?> {
+    public static func forEmail( _ email : String, on connection: DatabaseConnectable ) throws -> Future<User?> {
         return Future.flatMap(on: connection) {
             return User.query(on: connection).filter(\User.email == email).first().map { usr in
                 return usr ?? nil
@@ -127,47 +127,47 @@ extension User {
         }
     }
 
-    public static func forUsernameOrEmail( username : String, email : String, on connection: Database.Connection ) throws -> Future<[User]> {
+    public static func forUsernameOrEmail( username : String, email : String, on connection: DatabaseConnectable ) throws -> Future<[User]> {
         return User<Database>.query(on: connection).group(Database.queryFilterRelationOr, closure: { or in
             or.filter(\User.username == username)
             or.filter(\User.email == email)
         }).all()
     }
 
-    public func tokenFor( type: AccessTokenType<Database>, on connection: Database.Connection ) throws -> Future<AccessToken<Database>?> {
+    public func tokenFor( type: AccessTokenType<Database>, on connection: DatabaseConnectable ) throws -> Future<AccessToken<Database>?> {
         return try AccessToken.tokenFor( user: self, andType: type, on: connection )
     }
     
-    public func findOrCreateToken( type: AccessTokenType<Database>, on connection: Database.Connection ) throws -> Future<AccessToken<Database>> {
+    public func findOrCreateToken( type: AccessTokenType<Database>, on connection: DatabaseConnectable ) throws -> Future<AccessToken<Database>> {
         return try AccessToken<Database>.findOrCreateToken( user: self, andType: type, on: connection )
     }
 }
 
 // MARK: - Lifecycle
 extension User {
-    public func willCreate(on connection: Database.Connection) throws -> Future<User> {
+    public func willCreate(on connection: DatabaseConnectable) throws -> Future<User> {
         return Future.map(on: connection) { self }
     }
-    public func didCreate(on connection: Database.Connection) throws -> Future<User> {
+    public func didCreate(on connection: DatabaseConnectable) throws -> Future<User> {
         return Future.map(on: connection) { self }
     }
 
-    public func willUpdate(on connection: Database.Connection) throws -> Future<User> {
+    public func willUpdate(on connection: DatabaseConnectable) throws -> Future<User> {
         /// Throws an error if the username is invalid
         //try validateUsername()
         
         /// Return the user. No async work is being done, so we must create a future manually.
         return Future.map(on: connection) { self }
     }
-    public func didUpdate(on connection: Database.Connection) throws -> Future<User> {
+    public func didUpdate(on connection: DatabaseConnectable) throws -> Future<User> {
         return Future.map(on: connection) { self }
     }
 
-    public func willRead(on connection: Database.Connection) throws -> Future<User> {
+    public func willRead(on connection: DatabaseConnectable) throws -> Future<User> {
         return Future.map(on: connection) { self }
     }
 
-    public func willDelete(on connection: Database.Connection) throws -> Future<User> {
+    public func willDelete(on connection: DatabaseConnectable) throws -> Future<User> {
         return Future.map(on: connection) { self }
     }
 }

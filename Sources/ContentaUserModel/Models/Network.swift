@@ -55,7 +55,7 @@ extension Network where D: JoinSupporting {
 
 // MARK: queries
 extension Network {
-    public static func forIPAddress( _ ip : IPAddress, on connection: Database.Connection ) throws -> Future<Network?> {
+    public static func forIPAddress( _ ip : IPAddress, on connection: DatabaseConnectable ) throws -> Future<Network?> {
         return Future.flatMap(on: connection) {
             return Network.query(on: connection).filter(\Network.ipAddress == ip.address).first().map { tok in
                 return tok ?? nil
@@ -63,7 +63,7 @@ extension Network {
         }
     }
 
-    public static func findOrCreateIPAddress( _ ip : IPAddress, on connection: Database.Connection ) throws -> Future<Network> {
+    public static func findOrCreateIPAddress( _ ip : IPAddress, on connection: DatabaseConnectable ) throws -> Future<Network> {
         return try Network<Database>.forIPAddress( ip, on: connection ).flatMap { nwork in
             guard let network = nwork else {
                 return Network(ip: ip).create(on: connection)

@@ -39,7 +39,7 @@ extension UserType {
 
 // MARK: queries
 extension UserType {
-    public static func forCode( _ code : String, on connection: Database.Connection ) throws -> Future<UserType?> {
+    public static func forCode( _ code : String, on connection: DatabaseConnectable ) throws -> Future<UserType?> {
         return Future.flatMap(on: connection) {
             return UserType.query(on: connection).filter(\UserType.code == code).first().map { type in
                 return type ?? nil
