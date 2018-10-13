@@ -55,33 +55,11 @@ public final class User<D>: Model where D: QuerySupporting {
         self.fullname = name
         self.email = email
     }
-
-    public func changePassword(_ password: String, on connection: Database.Connection ) throws -> EventLoopFuture<User> {
-        // validate
-        try Validator<String>.password.validate(password)
-
-        self.passwordHash = try BCrypt.hash(password) // 12 iterations, random salt
-        return self.save(on: connection)
-    }
-
-    public func passwordVerify(_ password: String) throws -> Bool {
-        if self.passwordHash == nil {
-            return false
-        }
-        return try BCrypt.verify(password, created: self.passwordHash!)
-    }
 }
 
-// MARK: - validation
-extension User : Validatable {
-    public static func validations() throws -> Validations<User<D>> {
-        var validations = Validations(User.self)
-        try validations.add( \User.username, Validator<String>.alphanumeric)
-        try validations.add( \User.email, Validator<String>.email)
-        return validations
-    }
-    
-}
+// MARK: - Content - Parameter
+extension User: Content {}
+extension User: Parameter {}
 
 // MARK: - Relations
 
@@ -178,10 +156,6 @@ extension User {
         return Future.map(on: connection) { self }
     }
 }
-
-// MARK: - Content - Parameter
-extension User: Content {}
-extension User: Parameter {}
 
 // MARK: - Basic Authentication
 extension User: BasicAuthenticatable {

@@ -185,6 +185,45 @@ final class UserTests: XCTestCase {
             XCTFail(error.localizedDescription)
         }
     }
+
+    func testPublic() {
+        let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
+        do {
+            if ( file.exists ) {
+                try file.delete()
+            }
+            
+            let sqlite = try SQLiteDatabase(storage: .file(path: file.fullPath))
+            let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+            let conn = try sqlite.newConnection(on: eventLoop).wait()
+            
+            try ContentaUserMigration_01<SQLiteDatabase>.prepare(on: conn).wait()
+            
+            try assertTableExists( "user", conn )
+            let vito = try User<SQLiteDatabase>.forUsername("vito", on: conn).wait()
+            XCTAssertNotNil(vito)
+            
+            let vitoPub = vito!.convertToPublic()
+            XCTAssertNotNil(vitoPub)
+            XCTAssertEqual(try vito!.requireID(), vitoPub!.id)
+
+            // test Future<User> convert Future<User.Public>
+            let futureSuperman: Future<User<SQLiteDatabase>?> = try User<SQLiteDatabase>.forUsername("superman", on: conn)
+            let x = futureSuperman.convertToPublic()
+            guard let publicSuperman = try x.wait() else {
+                XCTFail()
+                return
+            }
+            let superman: User<SQLiteDatabase>? = try futureSuperman.wait()
+            XCTAssertNotEqual(try vito!.requireID(), publicSuperman.id)
+            XCTAssertEqual(try superman!.requireID(), publicSuperman.id)
+            
+            try file.delete()
+        }
+        catch  {
+            XCTFail(error.localizedDescription)
+        }
+    }
 }
 
 extension UserTests : DbTestCase {}
