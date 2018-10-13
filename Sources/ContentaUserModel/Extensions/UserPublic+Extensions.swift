@@ -34,7 +34,7 @@ extension Optional : PublicConvertable where Wrapped: PublicConvertable {
 extension User : PublicConvertable {
     public typealias PublicType = User.Public
     
-    public struct Public: Content {
+    public struct Public: Content, Codable {
         let id: User.ID
         let fullname: String
         let username: String

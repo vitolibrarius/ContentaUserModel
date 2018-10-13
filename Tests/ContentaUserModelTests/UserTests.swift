@@ -218,6 +218,13 @@ final class UserTests: XCTestCase {
             XCTAssertNotEqual(try vito!.requireID(), publicSuperman.id)
             XCTAssertEqual(try superman!.requireID(), publicSuperman.id)
             
+            let allUsersQuery = User<SQLiteDatabase>.query(on: conn)
+            let queryDecode  = allUsersQuery.decode(data: User<SQLiteDatabase>.Public.self)
+            let futureAll = queryDecode.all()
+            let allPublic = try futureAll.wait()
+            print("\(allPublic)")
+                //.decode(User<SQLiteDatabase>.Public.self).all()
+
             try file.delete()
         }
         catch  {
