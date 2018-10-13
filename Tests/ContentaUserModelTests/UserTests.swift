@@ -228,6 +228,49 @@ final class UserTests: XCTestCase {
             XCTFail(error.localizedDescription)
         }
     }
+
+    func testQueries() {
+        let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
+        do {
+            if ( file.exists ) {
+                try file.delete()
+            }
+            
+            let sqlite = try SQLiteDatabase(storage: .file(path: file.fullPath))
+            let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+            let conn = try sqlite.newConnection(on: eventLoop).wait()
+            
+            try ContentaUserMigration_01<SQLiteDatabase>.prepare(on: conn).wait()
+            try ContentaUserMigration_02<SQLiteDatabase>.prepare(on: conn).wait()
+            
+            try assertTableExists( "user", conn )
+            let users = try User<SQLiteDatabase>.query(on: conn).all().wait()
+            XCTAssertEqual(users.count, 2)
+            
+            let vito: User<SQLiteDatabase>? = try User<SQLiteDatabase>.forUsername("vito", on: conn).wait()
+            if vito == nil {
+                XCTFail()
+            }
+
+            let also_vito: User<SQLiteDatabase>? = try User<SQLiteDatabase>.forEmail("vitolibrarius@gmail.com", on: conn).wait()
+            if also_vito == nil {
+                XCTFail()
+            }
+
+            let not_vito: User<SQLiteDatabase>? = try User<SQLiteDatabase>.forEmail("joe@gmail.com", on: conn).wait()
+            if not_vito != nil {
+                XCTFail()
+            }
+
+            let vitoAndSuperman = try User<SQLiteDatabase>.forUsernameOrEmail(username: "superman", email: "vitolibrarius@gmail.com", on: conn).wait()
+            XCTAssertEqual(vitoAndSuperman.count, 2)
+
+            //            try file.delete()
+        }
+        catch  {
+            XCTFail(error.localizedDescription)
+        }
+    }
 }
 
 extension UserTests : DbTestCase {}

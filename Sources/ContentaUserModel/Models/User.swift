@@ -119,6 +119,21 @@ extension User {
         }
     }
 
+    public static func forEmail( _ email : String, on connection: Database.Connection ) throws -> Future<User?> {
+        return Future.flatMap(on: connection) {
+            return User.query(on: connection).filter(\User.email == email).first().map { usr in
+                return usr ?? nil
+            }
+        }
+    }
+
+    public static func forUsernameOrEmail( username : String, email : String, on connection: Database.Connection ) throws -> Future<[User]> {
+        return User<Database>.query(on: connection).group(Database.queryFilterRelationOr, closure: { or in
+            or.filter(\User.username == username)
+            or.filter(\User.email == email)
+        }).all()
+    }
+
     public func tokenFor( type: AccessTokenType<Database>, on connection: Database.Connection ) throws -> Future<AccessToken<Database>?> {
         return try AccessToken.tokenFor( user: self, andType: type, on: connection )
     }
