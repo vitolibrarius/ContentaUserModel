@@ -271,6 +271,54 @@ final class UserTests: XCTestCase {
             XCTFail(error.localizedDescription)
         }
     }
+    
+    func testDecoding() {
+        let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
+        do {
+            if ( file.exists ) {
+                try file.delete()
+            }
+            
+            let sqlite = try SQLiteDatabase(storage: .file(path: file.fullPath))
+            let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+            let conn = try sqlite.newConnection(on: eventLoop).wait()
+            
+            try ContentaUserMigration_01<SQLiteDatabase>.prepare(on: conn).wait()
+            try ContentaUserMigration_02<SQLiteDatabase>.prepare(on: conn).wait()
+            
+            try assertTableExists( "user", conn )
+            let users = try User<SQLiteDatabase>.query(on: conn).all().wait()
+            XCTAssertEqual(users.count, 2)
+            
+            let json = """
+{
+    "fullname" : "Sally Simpson",
+    "username" : "sally",
+    "email" : "sally@gmail.com",
+    "typeCode": "REG",
+    "passwordHash": "Test23456"
+}
+"""
+            let data = Data(json.utf8)
+            let decoder = JSONDecoder()
+            let user = try! decoder.decode(User<SQLiteDatabase>.self, from: data)
+            user.password = user.passwordHash ?? "locked out"
+            _ = try user.save(on: conn).wait()
+
+            print( "\(user)" )
+            let id = user.id ?? 0
+            print( "\(user.username) \(id) = \(user.password)" )
+            XCTAssertTrue( try user.passwordVerify("Test23456") )
+            
+            let newUser = try User<SQLiteDatabase>.find(user.requireID(), on: conn).wait()
+            XCTAssertEqual(newUser?.email, user.email)
+            //            try file.delete()
+        }
+        catch  {
+            XCTFail(error.localizedDescription)
+        }
+    }
+
 }
 
 extension UserTests : DbTestCase {}

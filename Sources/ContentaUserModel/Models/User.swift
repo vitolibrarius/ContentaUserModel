@@ -35,8 +35,8 @@ public final class User<D>: Model where D: QuerySupporting {
     // MARK: - auth attributes
     public var username: String
     public var passwordHash: String?
-    public var failedLogins: Int = 0
-    public var active: Bool = true
+    public var failedLogins: Int? = 0
+    public var active: Bool? = true
 
     // MARK: - user meta attributes
     public var fullname: String
