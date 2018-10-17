@@ -8,7 +8,7 @@ import ContentaTools
 import Vapor
 import Validation
 
-public final class Network<D>: Model where D: QuerySupporting {
+public final class Network<D>: Model where D: JoinSupporting {
     
     // MARK: ID
     public typealias Database = D

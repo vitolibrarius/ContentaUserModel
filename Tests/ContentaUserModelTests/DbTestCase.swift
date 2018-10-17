@@ -8,9 +8,38 @@ import FluentSQLite
 import ContentaTools
 import XCTest
 
+@testable import ContentaUserModel
+
 protocol DbTestCase {}
 
 extension DbTestCase {
+
+    func openConnection(path filename: ToolFile ) throws -> SQLiteConnection? {
+        XCTAssertNotNil(filename)
+        if ( filename.exists ) {
+            try filename.delete()
+        }
+
+        do {
+            let sqlite = try SQLiteDatabase(storage: .file(path: filename.fullPath))
+            let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+            let connection = try sqlite.newConnection(on: eventLoop).wait()
+            try SQLiteDatabase.enableReferences(on: connection).wait()
+
+            try ContentaUserMigration_01<SQLiteDatabase>.prepare(on: connection).wait()
+            try ContentaUserMigration_02<SQLiteDatabase>.prepare(on: connection).wait()
+
+            try assertTableExists( User<SQLiteDatabase>.entity, connection )
+            try assertTableExists( Network<SQLiteDatabase>.entity, connection )
+            try assertTableExists( AccessToken<SQLiteDatabase>.entity, connection )
+            
+            return connection
+        }
+        catch  {
+            XCTFail(error.localizedDescription)
+        }
+        return nil
+    }
 
     func sqliteDataFile(_ testName: String, _ testClassName: String) -> ToolFile {
         let test = testName.removeCharacterSet(from: CharacterSet.alphanumerics.inverted)

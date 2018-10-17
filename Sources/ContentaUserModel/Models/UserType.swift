@@ -8,7 +8,7 @@ import Foundation
 import Vapor
 import Validation
 
-public final class UserType<D>: Model where D: QuerySupporting {
+public final class UserType<D>: Model where D: JoinSupporting {
     // MARK: ID
     public typealias ID = String
     public typealias Database = D

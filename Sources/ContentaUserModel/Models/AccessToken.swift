@@ -10,7 +10,7 @@ import Crypto
 import Vapor
 import Validation
 
-public final class AccessToken<D>: Model where D: QuerySupporting {
+public final class AccessToken<D>: Model where D: JoinSupporting {
     // MARK: ID
     public typealias ID = Int
     public typealias Database = D
@@ -109,3 +109,37 @@ extension AccessToken {
 // MARK: - Content - Parameter
 extension AccessToken: Content {}
 extension AccessToken: Parameter {}
+
+// MARK: - Lifecycle
+extension AccessToken {
+    public func willCreate(on connection: DatabaseConnectable) throws -> Future<AccessToken> {
+        try self.validate()
+        return Future.map(on: connection) { self }
+    }
+    public func didCreate(on connection: DatabaseConnectable) throws -> Future<AccessToken> {
+        return Future.map(on: connection) { self }
+    }
+    
+    public func willUpdate(on connection: DatabaseConnectable) throws -> Future<AccessToken> {
+        try self.validate()
+        return Future.map(on: connection) { self }
+    }
+    public func didUpdate(on connection: DatabaseConnectable) throws -> Future<AccessToken> {
+        return Future.map(on: connection) { self }
+    }
+    
+    public func willRead(on connection: DatabaseConnectable) throws -> Future<AccessToken> {
+        return Future.map(on: connection) { self }
+    }
+    
+    public func willDelete(on connection: DatabaseConnectable) throws -> Future<AccessToken> {
+        return Future.map(on: connection) { self }
+    }
+}
+
+extension AccessToken : Validatable, Reflectable {    
+    public static func validations() throws -> Validations<AccessToken<D>> {
+        let validations = Validations(AccessToken.self)
+        return validations
+    }
+}

@@ -10,7 +10,7 @@ import Authentication
 import Validation
 import ContentaTools
 
-public final class User<D>: Model where D: QuerySupporting {
+public final class User<D>: Model where D: JoinSupporting {
 
     // MARK: ID
     public typealias ID = Int
@@ -78,18 +78,18 @@ extension User {
 }
 
 extension User where D: JoinSupporting {
-    public var networkJoins: Siblings<User, Network<Database>, UserNetworkJoin<Database>> {
+    public var networks: Siblings<User, Network<Database>, UserNetworkJoin<Database>> {
         return siblings()
     }
 
     public func isAttachedToNetwork(_ network: Network<Database>, on connection: DatabaseConnectable  ) throws -> Future<Bool> {
-        return networkJoins.isAttached(network, on: connection)
+        return networks.isAttached(network, on: connection)
     }
 
     public func isAttachedToAddress(_ ipaddress: IPAddress, on connection: DatabaseConnectable  ) throws -> Future<Bool> {
         return try Network<Database>.forIPAddress( ipaddress, on: connection ).flatMap { nwork in
             guard let network = nwork else { return Future.map(on: connection) { false }}
-            return self.networkJoins.isAttached(network, on: connection)
+            return self.networks.isAttached(network, on: connection)
         }
     }
 
@@ -102,7 +102,7 @@ extension User where D: JoinSupporting {
     public func addNetworkIfAbsent(_ network: Network<Database>, on connection: DatabaseConnectable ) throws -> Future<Network<Database>> {
         return try isAttachedToNetwork(network, on: connection).flatMap { isAttached in
             if ( isAttached == false ) {
-                _ = self.networkJoins.attach(network, on: connection)
+                _ = self.networks.attach(network, on: connection)
             }
             return Future.map(on: connection) { network }
         }
@@ -145,30 +145,48 @@ extension User {
 
 // MARK: - Lifecycle
 extension User {
-    public func willCreate(on connection: DatabaseConnectable) throws -> Future<User> {
-        return Future.map(on: connection) { self }
+    public func willCreate(on connection: Database.Connection)  throws -> Future<User> {
+        // default values
+        if self.failedLogins == nil { self.failedLogins = 0 }
+        if self.active == nil { self.active = true }
+
+        try self.validate()
+        let allFutures : [EventLoopFuture<Void>] = [
+            try User.forUsernameOrEmail( username: username, email: email, on: connection ).map { peers in
+                if !peers.isEmpty { throw Abort(.alreadyReported, reason: "User already registered") }
+                },
+            try UserType<Database>.forCode(typeCode, on: connection).map { optionalType in
+                if optionalType == nil {throw Abort(.alreadyReported, reason: "UserType not found") }
+            }
+        ]
+
+        return Future<User>.andAll(allFutures, eventLoop: connection.eventLoop).transform(to: self)
     }
-    public func didCreate(on connection: DatabaseConnectable) throws -> Future<User> {
+
+    public func didCreate(on connection: Database.Connection) throws -> Future<User> {
         return Future.map(on: connection) { self }
     }
 
-    public func willUpdate(on connection: DatabaseConnectable) throws -> Future<User> {
-        /// Throws an error if the username is invalid
-        //try validateUsername()
-        
-        /// Return the user. No async work is being done, so we must create a future manually.
+    public func willUpdate(on connection: Database.Connection) throws -> Future<User> {
+        try self.validate()
         return Future.map(on: connection) { self }
     }
-    public func didUpdate(on connection: DatabaseConnectable) throws -> Future<User> {
+    public func didUpdate(on connection: Database.Connection) throws -> Future<User> {
         return Future.map(on: connection) { self }
     }
 
-    public func willRead(on connection: DatabaseConnectable) throws -> Future<User> {
+    public func willRead(on connection: Database.Connection) throws -> Future<User> {
         return Future.map(on: connection) { self }
     }
 
-    public func willDelete(on connection: DatabaseConnectable) throws -> Future<User> {
-        return Future.map(on: connection) { self }
+    public func willDelete(on connection: Database.Connection) throws -> Future<User> {
+        // check for related deletes
+        let allFutures : [EventLoopFuture<Void>] = [
+            try self.accessTokens.query(on: connection).delete(),
+            try self.networks.pivots(on: connection).delete()
+        ]
+
+        return Future<User>.andAll(allFutures, eventLoop: connection.eventLoop).transform(to: self)
     }
 }
 

@@ -1,8 +1,9 @@
 // 
 
-import Fluent
-import ContentaTools
 import Foundation
+import Fluent
+import FluentSQL
+import ContentaTools
 
 public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & SchemaSupporting & MigrationSupporting {
     public typealias Database = D
@@ -22,7 +23,7 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
 
     static func sample_users() -> [[String:String]] {
         return [
-            [ "name": "Vito Librarius", "username": "vito",     "type": "ADMIN", "email": "vitolibrarius@gmail.com", "password": "TeSt12345" ],
+            [ "name": "Vito Librarius", "username": "vitolib",  "type": "ADMIN", "email": "vitolibrarius@gmail.com", "password": "TeSt12345" ],
             [ "name": "Clark Kent",     "username": "superman", "type": "REG",   "email": "clark.kent@gmail.com",    "password": "Chang3 m3 pleas3" ]
         ]
     }
@@ -86,8 +87,10 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
             builder.field(for: \UserNetworkJoin.updated)
             
             builder.unique(on: \UserNetworkJoin.userId, \UserNetworkJoin.networkId )
-
-            builder.reference(from: \UserNetworkJoin.userId, to: \User<Database>.id)
+            
+            // https://github.com/vapor/fluent/issues/538
+            // generic models cannot set relational actions like Cascade or Nullify
+            builder.reference(from: \UserNetworkJoin.userId, to: \User<Database>.id )
             builder.reference(from: \UserNetworkJoin.networkId, to: \Network<Database>.id)
         }
     }
@@ -111,23 +114,13 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
             let uname : String = usr["username"]!
             let email : String = usr["email"]!
             let type : String = usr["type"]!
-            return User<Database>( name: fname, username: uname, email: email, type: type)
+            let pword : String = usr["password"]!
+
+            let user = User<Database>( name: fname, username: uname, email: email, type: type)
+            user.password = pword
+            return user
                 .create(on: connection)
                 .map(to: Void.self) { _ in return }
-        }
-        return futures
-    }
-
-    static func preparePasswordUsers(on connection: Database.Connection) throws -> [Future<Void>] {
-        let futures : [EventLoopFuture<Void>] = try sample_users().map { usr in
-            let pword : String = usr["password"]!
-            let uname : String = usr["username"]!
-
-            return try User<Database>.forUsername(uname, on: connection).flatMap { usr in
-                guard let user = usr else { return Future.map(on: connection) { Void() } }
-                return try user.changePassword(pword, on: connection)
-                    .map(to: Void.self) { _ in return }
-            }
         }
         return futures
     }
@@ -150,22 +143,14 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
             prepareTableUserNetworkJoin(on: connection)
         ]
         
-        do {
-            let insertUserTypes : [Future<Void>] = prepareInsertUserTypes(on: connection)
-            allFutures.append(contentsOf: insertUserTypes)
-
-            let insertUsers : [Future<Void>] = prepareInsertUsers(on: connection)
-            allFutures.append(contentsOf: insertUsers)
-
-            let updateUsers : [Future<Void>] = try preparePasswordUsers(on: connection)
-            allFutures.append(contentsOf: updateUsers)
-
-            let insertNetworks : [Future<Void>] = prepareInsertNetworks(on: connection)
-            allFutures.append(contentsOf: insertNetworks)
-        }
-        catch {
-            return connection.eventLoop.newFailedFuture(error: error)
-        }
+        let insertUserTypes : [Future<Void>] = prepareInsertUserTypes(on: connection)
+        allFutures.append(contentsOf: insertUserTypes)
+        
+        let insertUsers : [Future<Void>] = prepareInsertUsers(on: connection)
+        allFutures.append(contentsOf: insertUsers)
+        
+        let insertNetworks : [Future<Void>] = prepareInsertNetworks(on: connection)
+        allFutures.append(contentsOf: insertNetworks)
 
         return Future<Void>.andAll(allFutures, eventLoop: connection.eventLoop)
     }

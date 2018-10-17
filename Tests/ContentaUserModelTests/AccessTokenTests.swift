@@ -24,24 +24,26 @@ final class AccessTokenTests: XCTestCase {
     func testMigration() {
         let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
         do {
-            if ( file.exists ) {
-                try file.delete()
+            let conn = try openConnection(path: file)
+            XCTAssertNotNil(conn)
+            let connection = conn!
+            defer {
+                connection.close()
+                defer {
+                    do {
+                        try file.delete()
+                    }
+                    catch  {
+                        XCTFail(error.localizedDescription)
+                    }
+                }
             }
-            
-            let sqlite = try SQLiteDatabase(storage: .file(path: file.fullPath))
-            let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-            let conn = try sqlite.newConnection(on: eventLoop).wait()
-            
-            try ContentaUserMigration_01<SQLiteDatabase>.prepare(on: conn).wait()
-            try ContentaUserMigration_02<SQLiteDatabase>.prepare(on: conn).wait()
 
-            try assertTableExists( "access_token_type", conn )
-            try assertTableExists( "access_token", conn )
+            try assertTableExists( "access_token_type", connection )
+            try assertTableExists( "access_token", connection )
             
-            let apiType = try AccessTokenType<SQLiteDatabase>.forCode("API", on: conn)
+            let apiType = try AccessTokenType<SQLiteDatabase>.forCode("API", on: connection)
             XCTAssertNotNil(apiType)
-            
-            try file.delete()
         }
         catch  {
             XCTFail(error.localizedDescription)
@@ -51,30 +53,29 @@ final class AccessTokenTests: XCTestCase {
     func testCreateAPITokens() {
         let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
         do {
-            if ( file.exists ) {
-                try file.delete()
+            let conn = try openConnection(path: file)
+            XCTAssertNotNil(conn)
+            let connection = conn!
+            defer {
+                connection.close()
+                defer {
+                    do {
+                        try file.delete()
+                    }
+                    catch  {
+                        XCTFail(error.localizedDescription)
+                    }
+                }
             }
-            
-            let sqlite = try SQLiteDatabase(storage: .file(path: file.fullPath))
-            let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-            let conn = try sqlite.newConnection(on: eventLoop).wait()
-            
-            try ContentaUserMigration_01<SQLiteDatabase>.prepare(on: conn).wait()
-            try ContentaUserMigration_02<SQLiteDatabase>.prepare(on: conn).wait()
-            
-            try assertTableExists( "access_token_type", conn )
-            try assertTableExists( "access_token", conn )
 
-            let apiType : AccessTokenType? = try AccessTokenType<SQLiteDatabase>.forCode("API", on: conn).wait()
+            let apiType : AccessTokenType? = try AccessTokenType<SQLiteDatabase>.forCode("API", on: connection).wait()
             XCTAssertNotNil(apiType)
 
-            let users = try User<SQLiteDatabase>.query(on: conn).all().wait()
+            let users = try User<SQLiteDatabase>.query(on: connection).all().wait()
             for usr in users {
-                let accessToken = try AccessToken(type: apiType!, user: usr).create(on: conn).wait()
+                let accessToken = try AccessToken(type: apiType!, user: usr).create(on: connection).wait()
                 print( "\(usr.username) - \(accessToken.token) - \(accessToken.expires!)")
             }
-
-            try file.delete()
         }
         catch  {
             XCTFail(error.localizedDescription)
@@ -84,50 +85,49 @@ final class AccessTokenTests: XCTestCase {
     func testTokenQueries() {
         let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
         do {
-            if ( file.exists ) {
-                try file.delete()
+            let conn = try openConnection(path: file)
+            XCTAssertNotNil(conn)
+            let connection = conn!
+            defer {
+                connection.close()
+                defer {
+                    do {
+                        try file.delete()
+                    }
+                    catch  {
+                        XCTFail(error.localizedDescription)
+                    }
+                }
             }
-            
-            let sqlite = try SQLiteDatabase(storage: .file(path: file.fullPath))
-            let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-            let conn = try sqlite.newConnection(on: eventLoop).wait()
-            
-            try ContentaUserMigration_01<SQLiteDatabase>.prepare(on: conn).wait()
-            try ContentaUserMigration_02<SQLiteDatabase>.prepare(on: conn).wait()
-            
-            try assertTableExists( "access_token_type", conn )
-            try assertTableExists( "access_token", conn )
 
-            let apiType : AccessTokenType? = try AccessTokenType<SQLiteDatabase>.forCode("API", on: conn).wait()
+            let apiType : AccessTokenType? = try AccessTokenType<SQLiteDatabase>.forCode("API", on: connection).wait()
             XCTAssertNotNil(apiType)
 
-            let tokenTypes = try AccessTokenType<SQLiteDatabase>.query(on: conn).all().wait()
-            let users = try User<SQLiteDatabase>.query(on: conn).all().wait()
+            let tokenTypes = try AccessTokenType<SQLiteDatabase>.query(on: connection).all().wait()
+            let users = try User<SQLiteDatabase>.query(on: connection).all().wait()
             for usr in users {
                 for type in tokenTypes {
-                    let accessToken = try AccessToken(type: type, user: usr).create(on: conn).wait()
+                    let accessToken = try AccessToken(type: type, user: usr).create(on: connection).wait()
                     print( "\(usr.username) - \(accessToken.token) - \(accessToken.expires!)")
                 }
             }
 
             for usr in users {
-                let userAPIToken = try usr.tokenFor(type: apiType!, on: conn).wait()
+                let userAPIToken = try usr.tokenFor(type: apiType!, on: connection).wait()
                 XCTAssertNotNil(userAPIToken)
                 XCTAssertFalse(userAPIToken!.isExpired)
 
                 userAPIToken!.isExpired = true
-                _ = userAPIToken!.save(on: conn)
+                _ = userAPIToken!.save(on: connection)
             }
 
-            let allTokens = try AccessToken<SQLiteDatabase>.query(on: conn).all().wait()
+            let allTokens = try AccessToken<SQLiteDatabase>.query(on: connection).all().wait()
             let apiCode = try apiType!.requireID()
             for tok in allTokens {
                 XCTAssertTrue( tok.isExpired || tok.typeCode != apiCode )
-                let testFetch = try AccessToken<SQLiteDatabase>.forToken(tok.token, on: conn)
+                let testFetch = try AccessToken<SQLiteDatabase>.forToken(tok.token, on: connection)
                 XCTAssertNotNil(testFetch)
             }
-            
-            try file.delete()
         }
         catch  {
             XCTFail(error.localizedDescription)

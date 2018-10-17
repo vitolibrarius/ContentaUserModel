@@ -21,33 +21,35 @@ final class NetworkTest: XCTestCase {
     func testNetworksUnique() {
         let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
         do {
-            if ( file.exists ) {
-                try file.delete()
+            let conn = try openConnection(path: file)
+            XCTAssertNotNil(conn)
+            let connection = conn!
+            defer {
+                connection.close()
+                defer {
+                    do {
+                        try file.delete()
+                    }
+                    catch  {
+                        XCTFail(error.localizedDescription)
+                    }
+                }
             }
-            
-            let sqlite = try SQLiteDatabase(storage: .file(path: file.fullPath))
-            let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-            let conn = try sqlite.newConnection(on: eventLoop).wait()
-            
-            try ContentaUserMigration_01<SQLiteDatabase>.prepare(on: conn).wait()
-            
-            try assertTableExists( "network", conn )
-            let networks = try Network<SQLiteDatabase>.query(on: conn).all().wait()
+
+            let networks = try Network<SQLiteDatabase>.query(on: connection).all().wait()
             XCTAssertEqual(networks.count, 2)
             
             // network.ipAddress is unique
             XCTAssertThrowsError(
-                try Network<SQLiteDatabase>(ip: IPAddress("127.0.0.1")!).create(on: conn).wait()
+                try Network<SQLiteDatabase>(ip: IPAddress("127.0.0.1")!).create(on: connection).wait()
             )
             
             XCTAssertNoThrow(
-                try Network<SQLiteDatabase>(ip: IPAddress("192.168.1.1")!).create(on: conn).wait()
+                try Network<SQLiteDatabase>(ip: IPAddress("192.168.1.1")!).create(on: connection).wait()
             )
 
-            let networks2 = try Network<SQLiteDatabase>.query(on: conn).all().wait()
+            let networks2 = try Network<SQLiteDatabase>.query(on: connection).all().wait()
             XCTAssertEqual(networks2.count, 3)
-
-            try file.delete()
         }
         catch  {
             XCTFail(error.localizedDescription)
@@ -57,58 +59,59 @@ final class NetworkTest: XCTestCase {
     func testNetworkJoinUnique() {
         let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
         do {
-            if ( file.exists ) {
-                try file.delete()
+            let conn = try openConnection(path: file)
+            XCTAssertNotNil(conn)
+            let connection = conn!
+            defer {
+                connection.close()
+                defer {
+                    do {
+                        try file.delete()
+                    }
+                    catch  {
+                        XCTFail(error.localizedDescription)
+                    }
+                }
             }
-            
-            let sqlite = try SQLiteDatabase(storage: .file(path: file.fullPath))
-            let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-            let conn = try sqlite.newConnection(on: eventLoop).wait()
-            
-            try ContentaUserMigration_01<SQLiteDatabase>.prepare(on: conn).wait()
-            
-            try assertTableExists( "network", conn )
-            try assertTableExists( "user", conn )
-            let networks = try Network<SQLiteDatabase>.query(on: conn).all().wait()
-            let users = try User<SQLiteDatabase>.query(on: conn).all().wait()
+
+            let networks = try Network<SQLiteDatabase>.query(on: connection).all().wait()
+            let users = try User<SQLiteDatabase>.query(on: connection).all().wait()
 
             XCTAssertEqual(users.count, 2)
             XCTAssertEqual(networks.count, 2)
 
             let ipaddress = IPAddress("127.0.0.1")!
-            let nwork : Network<SQLiteDatabase>? = try Network<SQLiteDatabase>.forIPAddress(ipaddress, on: conn).wait()
+            let nwork : Network<SQLiteDatabase>? = try Network<SQLiteDatabase>.forIPAddress(ipaddress, on: connection).wait()
             if nwork == nil {
                 XCTFail()
             }
 
-            let matches = try Network<SQLiteDatabase>.query(on: conn).filter(\Network<SQLiteDatabase>.ipAddress == ipaddress.address).all().wait()
+            let matches = try Network<SQLiteDatabase>.query(on: connection).filter(\Network<SQLiteDatabase>.ipAddress == ipaddress.address).all().wait()
             print(matches)
             for usr in users {
                 for nwork in networks {
                     print( "\(nwork.ipAddress)")
-                    _ = try usr.addNetworkIfAbsent(nwork, on: conn)
+                    _ = try usr.addNetworkIfAbsent(nwork, on: connection)
                 }
             }
 
             for usr in users {
-                let isAtt : Bool = try usr.isAttachedToAddress(IPAddress("127.0.0.1")!, on: conn).wait()
+                let isAtt : Bool = try usr.isAttachedToAddress(IPAddress("127.0.0.1")!, on: connection).wait()
                 print( "\(isAtt ? true :  false)")
             }
 
             
             // network.ipAddress is unique
             XCTAssertThrowsError(
-                try Network<SQLiteDatabase>(ip: IPAddress("127.0.0.1")!).create(on: conn).wait()
+                try Network<SQLiteDatabase>(ip: IPAddress("127.0.0.1")!).create(on: connection).wait()
             )
             
             XCTAssertNoThrow(
-                try Network<SQLiteDatabase>(ip: IPAddress("192.168.1.1")!).create(on: conn).wait()
+                try Network<SQLiteDatabase>(ip: IPAddress("192.168.1.1")!).create(on: connection).wait()
             )
             
-            let networks2 = try Network<SQLiteDatabase>.query(on: conn).all().wait()
+            let networks2 = try Network<SQLiteDatabase>.query(on: connection).all().wait()
             XCTAssertEqual(networks2.count, 3)
-            
-            try file.delete()
         }
         catch  {
             XCTFail(error.localizedDescription)

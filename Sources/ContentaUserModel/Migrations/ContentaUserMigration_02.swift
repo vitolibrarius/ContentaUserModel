@@ -39,11 +39,14 @@ public struct ContentaUserMigration_02<D> : Migration where D: JoinSupporting & 
             builder.field(for: \AccessToken.updated)
             builder.field(for: \AccessToken.expires)
 
+            // https://github.com/vapor/fluent/issues/538
+            // generic models cannot set relational actions like Cascade or Nullify
             builder.reference(from: \AccessToken.typeCode, to: \AccessTokenType<Database>.code)
             builder.reference(from: \AccessToken.userId, to: \User<Database>.id)
 
             // constraints
             builder.unique(on: \AccessToken.userId, \AccessToken.typeCode )
+            builder.unique(on: \AccessToken.token )
         }
     }
 

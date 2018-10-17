@@ -8,7 +8,7 @@ import Fluent
 import Authentication
 
 // MARK: - validation
-extension User : Validatable {
+extension User : Validatable, Reflectable {
     public func changePassword(_ password: String, on connection: Database.Connection ) throws -> EventLoopFuture<User> {
         // validate
         try Validator<String>.password.validate(password)
@@ -27,6 +27,7 @@ extension User : Validatable {
     public static func validations() throws -> Validations<User<D>> {
         var validations = Validations(User.self)
         try validations.add( \User.username, Validator<String>.alphanumeric)
+        try validations.add( \User.username, Validator<String>.count(5...))
         try validations.add( \User.email, Validator<String>.email)
         return validations
     }

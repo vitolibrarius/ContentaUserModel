@@ -24,40 +24,43 @@ final class UserTests: XCTestCase {
     func testMigration() {
         let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
         do {
-            if ( file.exists ) {
-                try file.delete()
+            let conn = try openConnection(path: file)
+            XCTAssertNotNil(conn)
+            let connection = conn!
+            defer {
+                connection.close()
+                defer {
+                    do {
+                        try file.delete()
+                    }
+                    catch  {
+                        XCTFail(error.localizedDescription)
+                    }
+                }
             }
 
-            let sqlite = try SQLiteDatabase(storage: .file(path: file.fullPath))
-            let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-            let conn = try sqlite.newConnection(on: eventLoop).wait()
-
-            try ContentaUserMigration_01<SQLiteDatabase>.prepare(on: conn).wait()
-
-            try assertTableExists( "user", conn )
-            let users = try User<SQLiteDatabase>.query(on: conn).all().wait()
-            let networks = try Network<SQLiteDatabase>.query(on: conn).all().wait()
+            let users = try User<SQLiteDatabase>.query(on: connection).all().wait()
+            let networks = try Network<SQLiteDatabase>.query(on: connection).all().wait()
             for nwork in networks {
                 nwork.isActive = false
-                _ = nwork.update(on: conn)
+                _ = nwork.update(on: connection)
             }
             
             for usr in users {
                 for ip in [IPAddress("192.168.1.1")!, IPAddress("192.168.1.2")!, IPAddress("192.168.1.3")! ] {
-                    let nwork : Network<SQLiteDatabase> = try usr.addAddressIfAbsent(ip, on: conn).wait()
+                    let nwork : Network<SQLiteDatabase> = try usr.addAddressIfAbsent(ip, on: connection).wait()
                     print( "\(ip.address) .. \(nwork.ipHash)")
                 }
             }
 
             for usr in users {
-                let ut = try usr.type.get(on: conn).wait()
-                let nworks = try usr.networkJoins.query(on: conn).all().wait()
+                let ut = try usr.type.get(on: connection).wait()
+                let nworks = try usr.networks.query(on: connection).all().wait()
                 print( "\(ut.displayName):\t \(usr.username) -> \(usr.created!)")
                 for n in nworks {
                     print( "\t\(n.ipHash)")
                 }
             }
-//            try file.delete()
         }
         catch  {
             XCTFail(error.localizedDescription)
@@ -67,39 +70,38 @@ final class UserTests: XCTestCase {
     func testUnique() {
         let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
         do {
-            if ( file.exists ) {
-                try file.delete()
+            let conn = try openConnection(path: file)
+            XCTAssertNotNil(conn)
+            let connection = conn!
+            defer {
+                connection.close()
+                defer {
+                    do {
+                        try file.delete()
+                    }
+                    catch  {
+                        XCTFail(error.localizedDescription)
+                    }
+                }
             }
-            
-            let sqlite = try SQLiteDatabase(storage: .file(path: file.fullPath))
-            let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-            let conn = try sqlite.newConnection(on: eventLoop).wait()
-            
-            try ContentaUserMigration_01<SQLiteDatabase>.prepare(on: conn).wait()
-            
-            try assertTableExists( "user", conn )
-            let users = try User<SQLiteDatabase>.query(on: conn).all().wait()
-            XCTAssertEqual(users.count, 2)
-            
+
             // username and email are both unique
             //             [ "username": "vito",     "type": "ADMIN", "email": "vitolibrarius@gmail.com" ],
 
             XCTAssertThrowsError(
-                try User<SQLiteDatabase>(name: "test assert", username: "vito", email: "none@whatever", type: "ADMIN" ).create(on: conn).wait()
+                try User<SQLiteDatabase>(name: "test assert", username: "vito", email: "none@whatever", type: "ADMIN" ).create(on: connection).wait()
             )
 
             XCTAssertThrowsError(
-                try User<SQLiteDatabase>(name: "test assert", username: "someone", email: "vitolibrarius@gmail.com", type: "ADMIN" ).create(on: conn).wait()
+                try User<SQLiteDatabase>(name: "test assert", username: "someone", email: "vitolibrarius@gmail.com", type: "ADMIN" ).create(on: connection).wait()
             )
 
             XCTAssertNoThrow(
-                try User<SQLiteDatabase>(name: "test assert", username: "someone", email: "anyone@gmail.com", type: "ADMIN" ).create(on: conn).wait()
+                try User<SQLiteDatabase>(name: "test assert", username: "someone", email: "anyone@gmail.com", type: "ADMIN" ).create(on: connection).wait()
             )
 
-            let users2 = try User<SQLiteDatabase>.query(on: conn).all().wait()
+            let users2 = try User<SQLiteDatabase>.query(on: connection).all().wait()
             XCTAssertEqual(users2.count, 3)
-
-            try file.delete()
         }
         catch  {
             XCTFail(error.localizedDescription)
@@ -108,35 +110,38 @@ final class UserTests: XCTestCase {
 
     func testPasswords() {
         let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
+
         do {
-            if ( file.exists ) {
-                try file.delete()
+            let conn = try openConnection(path: file)
+            XCTAssertNotNil(conn)
+            let connection = conn!
+            defer {
+                connection.close()
+                defer {
+                    do {
+                        try file.delete()
+                    }
+                    catch  {
+                        XCTFail(error.localizedDescription)
+                    }
+                }
             }
-            
-            let sqlite = try SQLiteDatabase(storage: .file(path: file.fullPath))
-            let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-            let conn = try sqlite.newConnection(on: eventLoop).wait()
-            
-            try ContentaUserMigration_01<SQLiteDatabase>.prepare(on: conn).wait()
-            
-            try assertTableExists( "user", conn )
-            let users = try User<SQLiteDatabase>.query(on: conn).all().wait()
+
+            let users = try User<SQLiteDatabase>.query(on: connection).all().wait()
             XCTAssertEqual(users.count, 2)
             
-            let vito: User<SQLiteDatabase>? = try User<SQLiteDatabase>.forUsername("vito", on: conn).wait()
+            let vito: User<SQLiteDatabase>? = try User<SQLiteDatabase>.forUsername("vitolib", on: connection).wait()
             if vito == nil {
                 XCTFail()
             }
             
-            //XCTAssertNil(try vito.changePassword("", on: conn))
+            //XCTAssertNil(try vito.changePassword("", on: connection))
             XCTAssertTrue(try vito!.passwordVerify("TeSt12345"))
             XCTAssertFalse(try vito!.passwordVerify("C0nt3nta"))
 
-            _ = try vito!.changePassword("C0nt3nta", on: conn).wait()
+            _ = try vito!.changePassword("C0nt3nta", on: connection).wait()
             XCTAssertFalse(try vito!.passwordVerify("TeSt12345"))
             XCTAssertTrue(try vito!.passwordVerify("C0nt3nta"))
-            
-            try file.delete()
         }
         catch  {
             XCTFail(error.localizedDescription)
@@ -146,40 +151,39 @@ final class UserTests: XCTestCase {
     func testDeletes() {
         let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
         do {
-            if ( file.exists ) {
-                try file.delete()
+            let conn = try openConnection(path: file)
+            XCTAssertNotNil(conn)
+            let connection = conn!
+            defer {
+                connection.close()
+                defer {
+                    do {
+                        try file.delete()
+                    }
+                    catch  {
+                        XCTFail(error.localizedDescription)
+                    }
+                }
             }
-            
-            let sqlite = try SQLiteDatabase(storage: .file(path: file.fullPath))
-            let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-            let conn = try sqlite.newConnection(on: eventLoop).wait()
-            
-            try ContentaUserMigration_01<SQLiteDatabase>.prepare(on: conn).wait()
-            try ContentaUserMigration_02<SQLiteDatabase>.prepare(on: conn).wait()
 
-            try assertTableExists( "user", conn )
-            let users = try User<SQLiteDatabase>.query(on: conn).all().wait()
+            let users = try User<SQLiteDatabase>.query(on: connection).all().wait()
             XCTAssertEqual(users.count, 2)
             
-            let vito: User<SQLiteDatabase>? = try User<SQLiteDatabase>.forUsername("vito", on: conn).wait()
-            if vito == nil {
-                XCTFail()
-            }
+            let vito: User<SQLiteDatabase>? = try User<SQLiteDatabase>.forUsername("vitolib", on: connection).wait()
+            XCTAssertNotNil(vito)
 
             let ipaddress = IPAddress("127.0.0.1")!
-            let nwork = try Network<SQLiteDatabase>.forIPAddress(ipaddress, on: conn).wait()
+            let nwork = try Network<SQLiteDatabase>.forIPAddress(ipaddress, on: connection).wait()
             XCTAssertNotNil(nwork)
-            _ = try vito!.addNetworkIfAbsent(nwork!, on: conn)
+            _ = try vito!.addNetworkIfAbsent(nwork!, on: connection)
 
-            let apiType = try AccessTokenType<SQLiteDatabase>.forCode("API", on: conn).wait()
+            let apiType = try AccessTokenType<SQLiteDatabase>.forCode("API", on: connection).wait()
             XCTAssertNotNil(apiType)
-            let token = try vito!.findOrCreateToken(type: apiType!, on: conn).wait()
+            let token = try vito!.findOrCreateToken(type: apiType!, on: connection).wait()
             XCTAssertNotNil(token)
 
-            // delete vito
-            _ = try vito!.delete(on: conn).wait()
-
-//            try file.delete()
+            // delete vito, should also cascade to owned objects
+            _ = try vito!.delete(on: connection).wait()
         }
         catch  {
             XCTFail(error.localizedDescription)
@@ -189,18 +193,22 @@ final class UserTests: XCTestCase {
     func testPublic() {
         let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
         do {
-            if ( file.exists ) {
-                try file.delete()
+            let conn = try openConnection(path: file)
+            XCTAssertNotNil(conn)
+            let connection = conn!
+            defer {
+                connection.close()
+                defer {
+                    do {
+                        try file.delete()
+                    }
+                    catch  {
+                        XCTFail(error.localizedDescription)
+                    }
+                }
             }
-            
-            let sqlite = try SQLiteDatabase(storage: .file(path: file.fullPath))
-            let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-            let conn = try sqlite.newConnection(on: eventLoop).wait()
-            
-            try ContentaUserMigration_01<SQLiteDatabase>.prepare(on: conn).wait()
-            
-            try assertTableExists( "user", conn )
-            let vito = try User<SQLiteDatabase>.forUsername("vito", on: conn).wait()
+
+            let vito = try User<SQLiteDatabase>.forUsername("vitolib", on: connection).wait()
             XCTAssertNotNil(vito)
             
             let vitoPub = vito!.convertToPublic()
@@ -208,21 +216,19 @@ final class UserTests: XCTestCase {
             XCTAssertEqual(try vito!.requireID(), vitoPub!.id)
 
             // test Future<User> convert Future<User.Public>
-            let futureSuperman: Future<User<SQLiteDatabase>?> = try User<SQLiteDatabase>.forUsername("superman", on: conn)
+            let futureSuperman: Future<User<SQLiteDatabase>?> = try User<SQLiteDatabase>.forUsername("superman", on: connection)
             let x = futureSuperman.convertToPublic()
             let publicSuperman = try x.wait()
             let superman: User<SQLiteDatabase>? = try futureSuperman.wait()
             XCTAssertNotEqual(try vito!.requireID(), publicSuperman.id)
             XCTAssertEqual(try superman!.requireID(), publicSuperman.id)
             
-            let allUsersQuery = User<SQLiteDatabase>.query(on: conn)
+            let allUsersQuery = User<SQLiteDatabase>.query(on: connection)
             let queryDecode  = allUsersQuery.decode(data: User<SQLiteDatabase>.Public.self)
             let futureAll = queryDecode.all()
             let allPublic = try futureAll.wait()
             print("\(allPublic)")
                 //.decode(User<SQLiteDatabase>.Public.self).all()
-
-            try file.delete()
         }
         catch  {
             XCTFail(error.localizedDescription)
@@ -232,40 +238,38 @@ final class UserTests: XCTestCase {
     func testQueries() {
         let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
         do {
-            if ( file.exists ) {
-                try file.delete()
+            let conn = try openConnection(path: file)
+            XCTAssertNotNil(conn)
+            let connection = conn!
+            defer {
+                connection.close()
+                defer {
+                    do {
+                        try file.delete()
+                    }
+                    catch  {
+                        XCTFail(error.localizedDescription)
+                    }
+                }
             }
-            
-            let sqlite = try SQLiteDatabase(storage: .file(path: file.fullPath))
-            let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-            let conn = try sqlite.newConnection(on: eventLoop).wait()
-            
-            try ContentaUserMigration_01<SQLiteDatabase>.prepare(on: conn).wait()
-            try ContentaUserMigration_02<SQLiteDatabase>.prepare(on: conn).wait()
-            
-            try assertTableExists( "user", conn )
-            let users = try User<SQLiteDatabase>.query(on: conn).all().wait()
-            XCTAssertEqual(users.count, 2)
-            
-            let vito: User<SQLiteDatabase>? = try User<SQLiteDatabase>.forUsername("vito", on: conn).wait()
+
+            let vito: User<SQLiteDatabase>? = try User<SQLiteDatabase>.forUsername("vitolib", on: connection).wait()
             if vito == nil {
                 XCTFail()
             }
 
-            let also_vito: User<SQLiteDatabase>? = try User<SQLiteDatabase>.forEmail("vitolibrarius@gmail.com", on: conn).wait()
+            let also_vito: User<SQLiteDatabase>? = try User<SQLiteDatabase>.forEmail("vitolibrarius@gmail.com", on: connection).wait()
             if also_vito == nil {
                 XCTFail()
             }
 
-            let not_vito: User<SQLiteDatabase>? = try User<SQLiteDatabase>.forEmail("joe@gmail.com", on: conn).wait()
+            let not_vito: User<SQLiteDatabase>? = try User<SQLiteDatabase>.forEmail("joe@gmail.com", on: connection).wait()
             if not_vito != nil {
                 XCTFail()
             }
 
-            let vitoAndSuperman = try User<SQLiteDatabase>.forUsernameOrEmail(username: "superman", email: "vitolibrarius@gmail.com", on: conn).wait()
+            let vitoAndSuperman = try User<SQLiteDatabase>.forUsernameOrEmail(username: "superman", email: "vitolibrarius@gmail.com", on: connection).wait()
             XCTAssertEqual(vitoAndSuperman.count, 2)
-
-            //            try file.delete()
         }
         catch  {
             XCTFail(error.localizedDescription)
@@ -275,25 +279,28 @@ final class UserTests: XCTestCase {
     func testDecoding() {
         let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
         do {
-            if ( file.exists ) {
-                try file.delete()
+            let conn = try openConnection(path: file)
+            XCTAssertNotNil(conn)
+            let connection = conn!
+            defer {
+                connection.close()
+                defer {
+                    do {
+                        try file.delete()
+                    }
+                    catch  {
+                        XCTFail(error.localizedDescription)
+                    }
+                }
             }
-            
-            let sqlite = try SQLiteDatabase(storage: .file(path: file.fullPath))
-            let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-            let conn = try sqlite.newConnection(on: eventLoop).wait()
-            
-            try ContentaUserMigration_01<SQLiteDatabase>.prepare(on: conn).wait()
-            try ContentaUserMigration_02<SQLiteDatabase>.prepare(on: conn).wait()
-            
-            try assertTableExists( "user", conn )
-            let users = try User<SQLiteDatabase>.query(on: conn).all().wait()
+
+            let users = try User<SQLiteDatabase>.query(on: connection).all().wait()
             XCTAssertEqual(users.count, 2)
             
             let json = """
 {
     "fullname" : "Sally Simpson",
-    "username" : "sally",
+    "username" : "sallys",
     "email" : "sally@gmail.com",
     "typeCode": "REG",
     "passwordHash": "Test23456"
@@ -303,16 +310,15 @@ final class UserTests: XCTestCase {
             let decoder = JSONDecoder()
             let user = try! decoder.decode(User<SQLiteDatabase>.self, from: data)
             user.password = user.passwordHash ?? "locked out"
-            _ = try user.save(on: conn).wait()
+            _ = try user.save(on: connection).wait()
 
             print( "\(user)" )
             let id = user.id ?? 0
             print( "\(user.username) \(id) = \(user.password)" )
             XCTAssertTrue( try user.passwordVerify("Test23456") )
             
-            let newUser = try User<SQLiteDatabase>.find(user.requireID(), on: conn).wait()
+            let newUser = try User<SQLiteDatabase>.find(user.requireID(), on: connection).wait()
             XCTAssertEqual(newUser?.email, user.email)
-            //            try file.delete()
         }
         catch  {
             XCTFail(error.localizedDescription)
