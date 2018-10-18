@@ -58,6 +58,9 @@ final class UserTests: XCTestCase {
                 let ut = try usr.type.get(on: connection).wait()
                 let nworks = try usr.networks.query(on: connection).all().wait()
                 print( "\(ut.displayName):\t \(usr.username) -> \(usr.created!)")
+                if usr.username == "vitolib" {
+                    XCTAssertEqual(usr.typeCode, "ADMIN")
+                }
                 for n in nworks {
                     print( "\t\(n.ipHash)")
                 }

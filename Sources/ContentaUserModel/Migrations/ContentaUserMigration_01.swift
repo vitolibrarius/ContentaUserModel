@@ -2,7 +2,6 @@
 
 import Foundation
 import Fluent
-import FluentSQL
 import ContentaTools
 
 public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & SchemaSupporting & MigrationSupporting {
@@ -125,6 +124,10 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
             user.password = pword
             return user
                 .create(on: connection)
+                .then { u -> Future<User<Database>> in
+                    u.typeCode = type
+                    return u.save(on: connection)
+                }
                 .map(to: Void.self) { _ in return }
         }
         return futures
