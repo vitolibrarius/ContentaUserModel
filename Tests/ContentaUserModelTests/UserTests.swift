@@ -14,7 +14,8 @@ final class UserTests: XCTestCase {
         ("testMigration", testMigration),
         ("testUnique", testUnique),
         ("testPasswords", testPasswords),
-        ("testDeletes", testDeletes)
+        ("testDeletes", testDeletes),
+        ("testDecoding", testDecoding)
     ]
     
     override func setUp() {

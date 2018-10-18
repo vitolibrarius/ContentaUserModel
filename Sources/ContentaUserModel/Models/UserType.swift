@@ -20,11 +20,21 @@ public final class UserType<D>: Model where D: JoinSupporting {
     // MARK: - attributes
     public var code: ID?
     public var displayName: String
-    
+    public var defaultType: Bool = false
+
     /// Creates a new `User`.
     init(code: String, displayName: String) {
         self.code = code
         self.displayName = displayName
+    }
+
+    public var isDefaultType : Bool {
+        get {
+            return defaultType
+        }
+        set {
+            self.defaultType = newValue
+        }
     }
 }
 
@@ -42,6 +52,14 @@ extension UserType {
     public static func forCode( _ code : String, on connection: DatabaseConnectable ) throws -> Future<UserType?> {
         return Future.flatMap(on: connection) {
             return UserType.query(on: connection).filter(\UserType.code == code).first().map { type in
+                return type ?? nil
+            }
+        }
+    }
+
+    public static func defaultTypeCode( on connection: DatabaseConnectable ) throws -> Future<UserType?> {
+        return Future.flatMap(on: connection) {
+            return UserType.query(on: connection).filter(\UserType.defaultType == true).first().map { type in
                 return type ?? nil
             }
         }

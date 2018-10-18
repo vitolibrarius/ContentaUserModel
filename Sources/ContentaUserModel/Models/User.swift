@@ -149,14 +149,16 @@ extension User {
         // default values
         if self.failedLogins == nil { self.failedLogins = 0 }
         if self.active == nil { self.active = true }
+        _ = try UserType<Database>.defaultTypeCode(on: connection).map { defType in
+            if defType != nil {
+                self.typeCode = try defType!.requireID()
+            }
+        }
 
         try self.validate()
         let allFutures : [EventLoopFuture<Void>] = [
             try User.forUsernameOrEmail( username: username, email: email, on: connection ).map { peers in
                 if !peers.isEmpty { throw Abort(.alreadyReported, reason: "User already registered") }
-                },
-            try UserType<Database>.forCode(typeCode, on: connection).map { optionalType in
-                if optionalType == nil {throw Abort(.alreadyReported, reason: "UserType not found") }
             }
         ]
 

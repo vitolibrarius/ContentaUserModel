@@ -12,7 +12,7 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
     static func sample_userTypes() -> [[String:String]] {
         return [
             [ "code": "UNR",   "displayName": "Unregistered" ],
-            [ "code": "REG",   "displayName": "Registered" ],
+            [ "code": "REG",   "displayName": "Registered", "defaultType": "true" ],
             [ "code": "ADMIN", "displayName": "Administrator" ]
         ]
     }
@@ -35,6 +35,7 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
             //add fields
             builder.field(for: \UserType.code, isIdentifier: true)
             builder.field(for: \UserType.displayName)
+            builder.field(for: \UserType.defaultType)
         }
     }
 
@@ -101,9 +102,13 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
         let futures : [EventLoopFuture<Void>] = sample_userTypes().map { usr in
             let code : String = usr["code"]!
             let display : String = usr["displayName"]!
-            return UserType<Database>(code: code, displayName: display)
-                .create(on: connection)
-                .map(to: Void.self) { _ in return }
+            let defaultType : String? = usr["defaultType"]
+            let newType = UserType<Database>(code: code, displayName: display)
+            
+            if defaultType != nil {
+                newType.isDefaultType = true
+            }
+            return newType.create(on: connection).map(to: Void.self) { _ in return }
         }
         return futures
     }
