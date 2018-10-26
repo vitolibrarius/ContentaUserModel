@@ -1,3 +1,6 @@
+Version 0.4.4:
+* ddcd62d -  (HEAD -> master) Register need to invoke password validation (Fri Oct 26 08:41:04 2018 -0600) <Vito Librarius>
+
 Version 0.4.3:
 * c4ee73b -  (HEAD -> master) Added decode json for registration into User.Register struct (Thu Oct 25 22:34:28 2018 -0600) <Vito Librarius>
 
