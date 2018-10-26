@@ -1,3 +1,6 @@
+Version 0.4.3:
+* c4ee73b -  (HEAD -> master) Added decode json for registration into User.Register struct (Thu Oct 25 22:34:28 2018 -0600) <Vito Librarius>
+
 Version 0.4.2:
 * ac20308 -  (HEAD -> master) fixed migration to ensure 1 ADMIN user (Thu Oct 18 09:08:12 2018 -0600) <Vito Librarius>
 
