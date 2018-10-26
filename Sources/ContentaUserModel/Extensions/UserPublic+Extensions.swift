@@ -50,6 +50,8 @@ extension User : PublicConvertable {
     }
     
     public static func registerUser(_ register: Register, on connection: DatabaseConnectable ) throws -> Future<User<Database>> {
+        
+        try Validator<String>.password.validate(register.password)
         return try User<Database>.forUsernameOrEmail(username: register.username, email: register.email, on: connection)
             .map { existingUsers in
                 if existingUsers.count > 0 {

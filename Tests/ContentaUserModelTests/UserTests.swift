@@ -376,8 +376,22 @@ final class UserTests: XCTestCase {
             let users = try User<SQLiteDatabase>.query(on: connection).all().wait()
             XCTAssertEqual(users.count, 2)
             let DefaultUserType = try UserType<SQLiteDatabase>.defaultTypeCode(on: connection).wait()!
+            let decoder = JSONDecoder()
 
-            let json = """
+            let badPasswordJson = """
+{
+    "fullname" : "Sally Simpson",
+    "username" : "sallys",
+    "email" : "sally@gmail.com",
+    "password": "X1"
+}
+"""
+            let badPasswordData = Data(badPasswordJson.utf8)
+            let badPasswordRegister = try! decoder.decode(User<SQLiteDatabase>.Register.self, from: badPasswordData)
+            XCTAssertEqual(badPasswordRegister.username, "sallys")
+            XCTAssertThrowsError( try User<SQLiteDatabase>.registerUser(badPasswordRegister, on: connection) )
+
+            let sallyJson = """
 {
     "fullname" : "Sally Simpson",
     "username" : "sallys",
@@ -385,9 +399,8 @@ final class UserTests: XCTestCase {
     "password": "Test23456"
 }
 """
-            let data = Data(json.utf8)
-            let decoder = JSONDecoder()
-            let register = try! decoder.decode(User<SQLiteDatabase>.Register.self, from: data)
+            let sallyData = Data(sallyJson.utf8)
+            let register = try! decoder.decode(User<SQLiteDatabase>.Register.self, from: sallyData)
             XCTAssertEqual(register.username, "sallys")
             let user = try User<SQLiteDatabase>.registerUser(register, on: connection).wait()
 
