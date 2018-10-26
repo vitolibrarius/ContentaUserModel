@@ -42,6 +42,27 @@ extension User : PublicConvertable {
         let typeCode: String
     }
 
+    public struct Register: Content, Codable {
+        let fullname: String
+        let username: String
+        let email: String
+        let password: String
+    }
+    
+    public static func registerUser(_ register: Register, on connection: DatabaseConnectable ) throws -> Future<User<Database>> {
+        return try User<Database>.forUsernameOrEmail(username: register.username, email: register.email, on: connection)
+            .map { existingUsers in
+                if existingUsers.count > 0 {
+                    throw Abort(.badRequest)
+                }
+            }
+            .then { t -> Future<User<Database>> in
+                let user = User<Database>(name: register.fullname, username: register.username, email: register.email, type: "default")
+                user.password = register.password
+                return user.save(on: connection)
+            }
+    }
+
     public func convertToPublic() -> User<D>.Public? {
         return Public(
             id: self.id!,

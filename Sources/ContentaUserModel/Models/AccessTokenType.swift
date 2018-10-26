@@ -53,3 +53,16 @@ extension AccessTokenType {
 // MARK: - Content - Parameter
 extension AccessTokenType: Content {}
 extension AccessTokenType: Parameter {}
+
+extension AccessTokenType: Equatable {
+    public static func == (lhs: AccessTokenType<D>, rhs: AccessTokenType<D>) -> Bool {
+        do {
+            let lhsId = try lhs.requireID()
+            let rhsId = try rhs.requireID()
+            return lhsId == rhsId
+        }
+        catch  {
+            return false
+        }
+    }
+}

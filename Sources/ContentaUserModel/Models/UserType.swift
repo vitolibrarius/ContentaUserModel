@@ -69,3 +69,16 @@ extension UserType {
 // MARK: - Content - Parameter
 extension UserType: Content {}
 extension UserType: Parameter {}
+
+extension UserType: Equatable {
+    public static func == (lhs: UserType<D>, rhs: UserType<D>) -> Bool {
+        do {
+            let lhsId = try lhs.requireID()
+            let rhsId = try rhs.requireID()
+            return lhsId == rhsId
+        }
+        catch  {
+            return false
+        }
+    }
+}

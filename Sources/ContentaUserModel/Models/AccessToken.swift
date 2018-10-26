@@ -143,3 +143,16 @@ extension AccessToken : Validatable, Reflectable {
         return validations
     }
 }
+
+extension AccessToken: Equatable {
+    public static func == (lhs: AccessToken<D>, rhs: AccessToken<D>) -> Bool {
+        do {
+            let lhsId = try lhs.requireID()
+            let rhsId = try rhs.requireID()
+            return lhsId == rhsId
+        }
+        catch  {
+            return false
+        }
+    }
+}

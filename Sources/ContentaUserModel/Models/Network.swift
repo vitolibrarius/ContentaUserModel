@@ -76,3 +76,9 @@ extension Network {
 // MARK: - Content - Parameter
 extension Network: Content {}
 extension Network: Parameter {}
+
+extension Network: Equatable {
+    public static func == (lhs: Network<D>, rhs: Network<D>) -> Bool {
+        return lhs.ipHash == rhs.ipHash
+    }
+}

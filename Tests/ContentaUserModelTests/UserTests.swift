@@ -329,6 +329,82 @@ final class UserTests: XCTestCase {
         }
     }
 
+    func testRegisterDecoding() {
+        let decoder = JSONDecoder()
+
+        let goodJson = """
+{
+    "fullname" : "Sally Simpson",
+    "username" : "good-decoded",
+    "email" : "sally@gmail.com",
+    "password": "Test23456"
+}
+"""
+        let goodData = Data(goodJson.utf8)
+        let goodRegister = try! decoder.decode(User<SQLiteDatabase>.Register.self, from: goodData)
+        XCTAssertEqual(goodRegister.username, "good-decoded")
+
+        let badJson = """
+{
+    "fullname" : "Sally Simpson",
+    "username" : "missing-password",
+    "email" : "sally@gmail.com",
+}
+"""
+        let badData = Data(badJson.utf8)
+        XCTAssertThrowsError(try decoder.decode(User<SQLiteDatabase>.Register.self, from: badData))
+    }
+
+    func testRegister() {
+        let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
+        do {
+            let conn = try openConnection(path: file)
+            XCTAssertNotNil(conn)
+            let connection = conn!
+            defer {
+                connection.close()
+                defer {
+                    do {
+                        try file.delete()
+                    }
+                    catch  {
+                        XCTFail(error.localizedDescription)
+                    }
+                }
+            }
+            
+            let users = try User<SQLiteDatabase>.query(on: connection).all().wait()
+            XCTAssertEqual(users.count, 2)
+            let DefaultUserType = try UserType<SQLiteDatabase>.defaultTypeCode(on: connection).wait()!
+
+            let json = """
+{
+    "fullname" : "Sally Simpson",
+    "username" : "sallys",
+    "email" : "sally@gmail.com",
+    "password": "Test23456"
+}
+"""
+            let data = Data(json.utf8)
+            let decoder = JSONDecoder()
+            let register = try! decoder.decode(User<SQLiteDatabase>.Register.self, from: data)
+            XCTAssertEqual(register.username, "sallys")
+            let user = try User<SQLiteDatabase>.registerUser(register, on: connection).wait()
+
+            let ut = try user.type.get(on: connection).wait()
+            let id = user.id ?? 0
+            print( "\(ut.displayName) #\(id): \(user.username) | \(user.password)" )
+            XCTAssertEqual(DefaultUserType, ut)
+            XCTAssertTrue( try user.passwordVerify("Test23456") )
+            XCTAssertFalse( try user.passwordVerify("Smoke23456") )
+
+            let newUser = try User<SQLiteDatabase>.find(user.requireID(), on: connection).wait()
+            XCTAssertEqual(newUser?.email, user.email)
+        }
+        catch  {
+            XCTFail(error.localizedDescription)
+        }
+    }
 }
 
 extension UserTests : DbTestCase {}
