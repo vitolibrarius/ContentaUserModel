@@ -10,9 +10,9 @@ public struct ContentaUserMigration_02<D> : Migration where D: JoinSupporting & 
     // MARK: - seed data
     static func sample_accessTokenTypes() -> [[String:Any]] {
         return [
-            [ "code": "API",      "displayName": "Machine Interface", "tokenExpirationInterval": 3600 ],
-            [ "code": "REMEMBER", "displayName": "Remember Me",       "tokenExpirationInterval": 3600 ],
-            [ "code": "RESET",    "displayName": "Password Reset",    "tokenExpirationInterval": 3600 ]
+            [ "code": AccessTokenCode.API.rawValue,      "displayName": "Machine Interface", "tokenExpirationInterval": 3600 ],
+            [ "code": AccessTokenCode.REMEMBER.rawValue, "displayName": "Remember Me",       "tokenExpirationInterval": 3600 ],
+            [ "code": AccessTokenCode.RESET.rawValue,    "displayName": "Password Reset",    "tokenExpirationInterval": 3600 ]
         ]
     }
 

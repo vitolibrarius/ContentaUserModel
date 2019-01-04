@@ -13,27 +13,19 @@ final class NetworkTest: XCTestCase {
     static var allTests = [
         ("testNetworksUnique", testNetworksUnique),
         ]
-    
+
     override func setUp() {
         super.setUp()
     }
     
     func testNetworksUnique() {
-        let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
         do {
+            let file : ToolFile = try sqliteDataFile("\(#function)", "\(#file)")
             let conn = try openConnection(path: file)
             XCTAssertNotNil(conn)
             let connection = conn!
             defer {
                 connection.close()
-                defer {
-                    do {
-                        try file.delete()
-                    }
-                    catch  {
-                        XCTFail(error.localizedDescription)
-                    }
-                }
             }
 
             let networks = try Network<SQLiteDatabase>.query(on: connection).all().wait()
@@ -57,21 +49,13 @@ final class NetworkTest: XCTestCase {
     }
 
     func testNetworkJoinUnique() {
-        let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
         do {
+            let file : ToolFile = try sqliteDataFile("\(#function)", "\(#file)")
             let conn = try openConnection(path: file)
             XCTAssertNotNil(conn)
             let connection = conn!
             defer {
                 connection.close()
-                defer {
-                    do {
-                        try file.delete()
-                    }
-                    catch  {
-                        XCTFail(error.localizedDescription)
-                    }
-                }
             }
 
             let networks = try Network<SQLiteDatabase>.query(on: connection).all().wait()

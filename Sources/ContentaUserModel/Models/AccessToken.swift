@@ -44,7 +44,7 @@ public final class AccessToken<D>: Model where D: JoinSupporting {
         self.token = try CryptoRandom().generateData(count: 32).base64URLEncodedString()
         self.expires = Date().addingTimeInterval(type.tokenExpirationInterval)
     }
-    
+
     public var isExpired : Bool {
         get {
             return self.expires != nil && self.expires! < Date()
@@ -96,12 +96,29 @@ extension AccessToken {
                 .map { tok in return tok ?? nil }
         }
     }
+
+    public static func tokenFor( user : User<Database>, andCode code: AccessTokenCode, on connection: DatabaseConnectable ) throws -> Future<AccessToken?> {
+        return Future.flatMap(on: connection) {
+            return try AccessToken.query(on: connection)
+                .filter(\AccessToken.userId == user.requireID())
+                .filter(\AccessToken.typeCode == code.rawValue)
+                .first()
+                .map { tok in return tok ?? nil }
+        }
+    }
+
     public static func findOrCreateToken( user : User<Database>, andType type: AccessTokenType<Database>, on connection: DatabaseConnectable ) throws -> Future<AccessToken> {
         return try AccessToken<Database>.tokenFor( user: user, andType: type, on: connection ).flatMap { t in
             guard let token = t else {
                 return try AccessToken(type: type, user: user).create(on: connection)
             }
             return Future.map(on: connection) { token }
+        }
+    }
+
+    public static func findOrCreateTokenCode( user : User<Database>, andCode code: AccessTokenCode, on connection: DatabaseConnectable ) throws -> Future<AccessToken> {
+        return try AccessTokenType<Database>.forTokenCode(code, on: connection).flatMap { tok in
+            return try findOrCreateToken( user: user, andType: tok!, on: connection)
         }
     }
 }

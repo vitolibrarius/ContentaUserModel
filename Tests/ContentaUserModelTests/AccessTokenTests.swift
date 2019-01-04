@@ -22,27 +22,19 @@ final class AccessTokenTests: XCTestCase {
     }
     
     func testMigration() {
-        let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
         do {
+            let file : ToolFile = try sqliteDataFile("\(#function)", "\(#file)")
             let conn = try openConnection(path: file)
             XCTAssertNotNil(conn)
             let connection = conn!
             defer {
                 connection.close()
-                defer {
-                    do {
-                        try file.delete()
-                    }
-                    catch  {
-                        XCTFail(error.localizedDescription)
-                    }
-                }
             }
 
             try assertTableExists( "access_token_type", connection )
             try assertTableExists( "access_token", connection )
             
-            let apiType = try AccessTokenType<SQLiteDatabase>.forCode("API", on: connection)
+            let apiType = try AccessTokenType<SQLiteDatabase>.forTokenCode(AccessTokenCode.API, on: connection)
             XCTAssertNotNil(apiType)
         }
         catch  {
@@ -51,24 +43,16 @@ final class AccessTokenTests: XCTestCase {
     }
 
     func testCreateAPITokens() {
-        let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
         do {
+            let file : ToolFile = try sqliteDataFile("\(#function)", "\(#file)")
             let conn = try openConnection(path: file)
             XCTAssertNotNil(conn)
             let connection = conn!
-            defer {
+            addTeardownBlock({
                 connection.close()
-                defer {
-                    do {
-                        try file.delete()
-                    }
-                    catch  {
-                        XCTFail(error.localizedDescription)
-                    }
-                }
-            }
+            })
 
-            let apiType : AccessTokenType? = try AccessTokenType<SQLiteDatabase>.forCode("API", on: connection).wait()
+            let apiType : AccessTokenType? = try AccessTokenType<SQLiteDatabase>.forTokenCode(AccessTokenCode.API, on: connection).wait()
             XCTAssertNotNil(apiType)
 
             let users = try User<SQLiteDatabase>.query(on: connection).all().wait()
@@ -81,26 +65,39 @@ final class AccessTokenTests: XCTestCase {
             XCTFail(error.localizedDescription)
         }
     }
-    
-    func testTokenQueries() {
-        let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
+
+    func testCreateAPITokenCodes() {
         do {
+            let file : ToolFile = try sqliteDataFile("\(#function)", "\(#file)")
             let conn = try openConnection(path: file)
             XCTAssertNotNil(conn)
             let connection = conn!
             defer {
                 connection.close()
-                defer {
-                    do {
-                        try file.delete()
-                    }
-                    catch  {
-                        XCTFail(error.localizedDescription)
-                    }
-                }
             }
 
-            let apiType : AccessTokenType? = try AccessTokenType<SQLiteDatabase>.forCode("API", on: connection).wait()
+            let users = try User<SQLiteDatabase>.query(on: connection).all().wait()
+            for usr in users {
+                let accessToken = try AccessToken.findOrCreateTokenCode( user: usr, andCode: AccessTokenCode.REMEMBER, on: connection).wait()
+                print( "\(usr.username) - \(accessToken.token) - \(accessToken.expires!)")
+            }
+        }
+        catch  {
+            XCTFail(error.localizedDescription)
+        }
+    }
+
+    func testTokenQueries() {
+        do {
+            let file : ToolFile = try sqliteDataFile("\(#function)", "\(#file)")
+            let conn = try openConnection(path: file)
+            XCTAssertNotNil(conn)
+            let connection = conn!
+            defer {
+                connection.close()
+            }
+
+            let apiType : AccessTokenType? = try AccessTokenType<SQLiteDatabase>.forTokenCode(AccessTokenCode.API, on: connection).wait()
             XCTAssertNotNil(apiType)
 
             let tokenTypes = try AccessTokenType<SQLiteDatabase>.query(on: connection).all().wait()

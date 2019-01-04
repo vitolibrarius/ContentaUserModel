@@ -8,6 +8,12 @@ import Foundation
 import Vapor
 import Validation
 
+public enum AccessTokenCode: String {
+    case API = "API"
+    case REMEMBER = "REMEMBER"
+    case RESET = "RESET"
+}
+
 public final class AccessTokenType<D>: Model where D: JoinSupporting {
     // MARK: ID
     public typealias ID = String
@@ -44,6 +50,14 @@ extension AccessTokenType {
     public static func forCode( _ code : String, on connection: DatabaseConnectable ) throws -> Future<AccessTokenType?> {
         return Future.flatMap(on: connection) {
             return AccessTokenType.query(on: connection).filter(\AccessTokenType.code == code).first().map { tok in
+                return tok ?? nil
+            }
+        }
+    }
+
+    public static func forTokenCode( _ code : AccessTokenCode, on connection: DatabaseConnectable ) throws -> Future<AccessTokenType?> {
+        return Future.flatMap(on: connection) {
+            return AccessTokenType.query(on: connection).filter(\AccessTokenType.code == code.rawValue).first().map { tok in
                 return tok ?? nil
             }
         }

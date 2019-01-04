@@ -13,7 +13,6 @@ import XCTest
 protocol DbTestCase {}
 
 extension DbTestCase {
-
     func openConnection(path filename: ToolFile ) throws -> SQLiteConnection? {
         XCTAssertNotNil(filename)
         if ( filename.exists ) {
@@ -41,11 +40,17 @@ extension DbTestCase {
         return nil
     }
 
-    func sqliteDataFile(_ testName: String, _ testClassName: String) -> ToolFile {
+    func sqliteDataFile(_ testName: String, _ testClassName: String) throws -> ToolFile {
         let test = testName.removeCharacterSet(from: CharacterSet.alphanumerics.inverted)
         let lastpath = (testClassName as NSString).lastPathComponent
         let filename = (lastpath as NSString).deletingPathExtension
-        let file : ToolFile = (ToolDirectory.systemTmp.subItem(filename + "_" + test + ".sqlite", type: FSItemType.FILE) as! ToolFile)
+        
+        let dir : ToolDirectory = (ToolDirectory.systemTmp.subItem(filename, type: FSItemType.DIRECTORY) as! ToolDirectory)
+        if !dir.exists {
+            try dir.mkdir()
+        }
+        
+        let file : ToolFile = (dir.subItem( test + ".sqlite", type: FSItemType.FILE) as! ToolFile)
         return file
     }
     

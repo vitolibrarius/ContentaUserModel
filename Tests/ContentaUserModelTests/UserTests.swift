@@ -21,23 +21,15 @@ final class UserTests: XCTestCase {
     override func setUp() {
         super.setUp()
     }
-
+    
     func testMigration() {
-        let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
         do {
+            let file : ToolFile = try sqliteDataFile("\(#function)", "\(#file)")
             let conn = try openConnection(path: file)
             XCTAssertNotNil(conn)
             let connection = conn!
             defer {
                 connection.close()
-                defer {
-                    do {
-                        try file.delete()
-                    }
-                    catch  {
-                        XCTFail(error.localizedDescription)
-                    }
-                }
             }
 
             let users = try User<SQLiteDatabase>.query(on: connection).all().wait()
@@ -72,21 +64,13 @@ final class UserTests: XCTestCase {
     }
 
     func testUnique() {
-        let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
         do {
+            let file : ToolFile = try sqliteDataFile("\(#function)", "\(#file)")
             let conn = try openConnection(path: file)
             XCTAssertNotNil(conn)
             let connection = conn!
             defer {
                 connection.close()
-                defer {
-                    do {
-                        try file.delete()
-                    }
-                    catch  {
-                        XCTFail(error.localizedDescription)
-                    }
-                }
             }
 
             // username and email are both unique
@@ -113,22 +97,13 @@ final class UserTests: XCTestCase {
     }
 
     func testPasswords() {
-        let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
-
         do {
+            let file : ToolFile = try sqliteDataFile("\(#function)", "\(#file)")
             let conn = try openConnection(path: file)
             XCTAssertNotNil(conn)
             let connection = conn!
             defer {
                 connection.close()
-                defer {
-                    do {
-                        try file.delete()
-                    }
-                    catch  {
-                        XCTFail(error.localizedDescription)
-                    }
-                }
             }
 
             let users = try User<SQLiteDatabase>.query(on: connection).all().wait()
@@ -153,21 +128,13 @@ final class UserTests: XCTestCase {
     }
 
     func testDeletes() {
-        let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
         do {
+            let file : ToolFile = try sqliteDataFile("\(#function)", "\(#file)")
             let conn = try openConnection(path: file)
             XCTAssertNotNil(conn)
             let connection = conn!
             defer {
                 connection.close()
-                defer {
-                    do {
-                        try file.delete()
-                    }
-                    catch  {
-                        XCTFail(error.localizedDescription)
-                    }
-                }
             }
 
             let users = try User<SQLiteDatabase>.query(on: connection).all().wait()
@@ -181,7 +148,7 @@ final class UserTests: XCTestCase {
             XCTAssertNotNil(nwork)
             _ = try vito!.addNetworkIfAbsent(nwork!, on: connection)
 
-            let apiType = try AccessTokenType<SQLiteDatabase>.forCode("API", on: connection).wait()
+            let apiType = try AccessTokenType<SQLiteDatabase>.forTokenCode(AccessTokenCode.API, on: connection).wait()
             XCTAssertNotNil(apiType)
             let token = try vito!.findOrCreateToken(type: apiType!, on: connection).wait()
             XCTAssertNotNil(token)
@@ -195,21 +162,13 @@ final class UserTests: XCTestCase {
     }
 
     func testPublic() {
-        let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
         do {
+            let file : ToolFile = try sqliteDataFile("\(#function)", "\(#file)")
             let conn = try openConnection(path: file)
             XCTAssertNotNil(conn)
             let connection = conn!
             defer {
                 connection.close()
-                defer {
-                    do {
-                        try file.delete()
-                    }
-                    catch  {
-                        XCTFail(error.localizedDescription)
-                    }
-                }
             }
 
             let vito = try User<SQLiteDatabase>.forUsername("vitolib", on: connection).wait()
@@ -240,21 +199,13 @@ final class UserTests: XCTestCase {
     }
 
     func testQueries() {
-        let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
         do {
+            let file : ToolFile = try sqliteDataFile("\(#function)", "\(#file)")
             let conn = try openConnection(path: file)
             XCTAssertNotNil(conn)
             let connection = conn!
             defer {
                 connection.close()
-                defer {
-                    do {
-                        try file.delete()
-                    }
-                    catch  {
-                        XCTFail(error.localizedDescription)
-                    }
-                }
             }
 
             let vito: User<SQLiteDatabase>? = try User<SQLiteDatabase>.forUsername("vitolib", on: connection).wait()
@@ -281,21 +232,13 @@ final class UserTests: XCTestCase {
     }
     
     func testDecoding() {
-        let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
         do {
+            let file : ToolFile = try sqliteDataFile("\(#function)", "\(#file)")
             let conn = try openConnection(path: file)
             XCTAssertNotNil(conn)
             let connection = conn!
             defer {
                 connection.close()
-                defer {
-                    do {
-                        try file.delete()
-                    }
-                    catch  {
-                        XCTFail(error.localizedDescription)
-                    }
-                }
             }
 
             let users = try User<SQLiteDatabase>.query(on: connection).all().wait()
@@ -356,21 +299,13 @@ final class UserTests: XCTestCase {
     }
 
     func testRegister() {
-        let file : ToolFile = sqliteDataFile("\(#function)", "\(#file)")
         do {
+            let file : ToolFile = try sqliteDataFile("\(#function)", "\(#file)")
             let conn = try openConnection(path: file)
             XCTAssertNotNil(conn)
             let connection = conn!
             defer {
                 connection.close()
-                defer {
-                    do {
-                        try file.delete()
-                    }
-                    catch  {
-                        XCTFail(error.localizedDescription)
-                    }
-                }
             }
             
             let users = try User<SQLiteDatabase>.query(on: connection).all().wait()

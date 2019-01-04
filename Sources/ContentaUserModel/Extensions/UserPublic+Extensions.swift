@@ -7,33 +7,9 @@ import Async
 import Fluent
 import Authentication
 
-public protocol PublicConvertable {
-    associatedtype PublicType
-    func convertToPublic() -> PublicType?
-}
-
-extension Future where T: PublicConvertable {
-    public func convertToPublic() -> Future<T.PublicType> {
-        return self.map({ (item) -> T.PublicType in
-            return item.convertToPublic()!
-        })
-    }
-}
-
-extension Optional : PublicConvertable where Wrapped: PublicConvertable {
-    public typealias PublicType = Wrapped.PublicType
-
-    public func convertToPublic() -> Wrapped.PublicType? {
-        guard self != nil else {
-            return nil
-        }
-        return self.unsafelyUnwrapped.convertToPublic()
-    }
-}
-
 extension User : PublicConvertable {
     public typealias PublicType = User.Public
-    
+
     public struct Public: Content, Codable {
         let id: User.ID
         let fullname: String
@@ -48,9 +24,9 @@ extension User : PublicConvertable {
         let email: String
         let password: String
     }
-    
+
     public static func registerUser(_ register: Register, on connection: DatabaseConnectable ) throws -> Future<User<Database>> {
-        
+
         try Validator<String>.password.validate(register.password)
         return try User<Database>.forUsernameOrEmail(username: register.username, email: register.email, on: connection)
             .map { existingUsers in
