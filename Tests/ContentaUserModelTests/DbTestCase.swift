@@ -26,6 +26,9 @@ extension DbTestCase {
             try SQLiteDatabase.enableReferences(on: connection).wait()
 
             try ContentaUserMigration_01<SQLiteDatabase>.prepare(on: connection).wait()
+            let insertUsers : [Future<Void>] = ContentaUserMigration_01<SQLiteDatabase>.loadDefaultUsers(on: connection)
+            try Future<Void>.andAll(insertUsers, eventLoop: connection.eventLoop).wait()
+
             try ContentaUserMigration_02<SQLiteDatabase>.prepare(on: connection).wait()
 
             try assertTableExists( User<SQLiteDatabase>.entity, connection )

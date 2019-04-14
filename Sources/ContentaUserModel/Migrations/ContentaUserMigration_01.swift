@@ -96,7 +96,7 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
     }
 
     // MARK: - insert data
-    static func prepareInsertUserTypes(on connection: Database.Connection) -> [Future<Void>] {
+    static func prepareDefaultUserTypes(on connection: Database.Connection) -> [Future<Void>] {
 
         let futures : [EventLoopFuture<Void>] = sample_userTypes().map { usr in
             let code : String = usr["code"]!
@@ -112,7 +112,17 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
         return futures
     }
 
-    static func prepareInsertUsers(on connection: Database.Connection) -> [Future<Void>] {
+    static func prepareDefaultNetworks(on connection: Database.Connection) -> [Future<Void>] {
+        let futures : [EventLoopFuture<Void>] = sample_addresses().map { ipaddress in
+            return Network<Database>(ip: ipaddress)
+                .create(on: connection)
+                .map(to: Void.self) { _ in return }
+        }
+        return futures
+    }
+
+    // MARK: -
+    public static func loadDefaultUsers(on connection: Database.Connection) -> [Future<Void>] {
         let futures : [EventLoopFuture<Void>] = sample_users().map { usr in
             let fname : String = usr["name"]!
             let uname : String = usr["username"]!
@@ -133,16 +143,6 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
         return futures
     }
 
-    static func prepareInsertNetworks(on connection: Database.Connection) -> [Future<Void>] {
-        let futures : [EventLoopFuture<Void>] = sample_addresses().map { ipaddress in
-            return Network<Database>(ip: ipaddress)
-                .create(on: connection)
-                .map(to: Void.self) { _ in return }
-        }
-        return futures
-    }
-
-    // MARK: -
     public static func prepare(on connection: Database.Connection) -> Future<Void> {
         var allFutures : [EventLoopFuture<Void>] = [
             prepareTableUserType(on: connection),
@@ -151,13 +151,10 @@ public struct ContentaUserMigration_01<D> : Migration where D: JoinSupporting & 
             prepareTableUserNetworkJoin(on: connection)
         ]
         
-        let insertUserTypes : [Future<Void>] = prepareInsertUserTypes(on: connection)
+        let insertUserTypes : [Future<Void>] = prepareDefaultUserTypes(on: connection)
         allFutures.append(contentsOf: insertUserTypes)
-        
-        let insertUsers : [Future<Void>] = prepareInsertUsers(on: connection)
-        allFutures.append(contentsOf: insertUsers)
-        
-        let insertNetworks : [Future<Void>] = prepareInsertNetworks(on: connection)
+
+        let insertNetworks : [Future<Void>] = prepareDefaultNetworks(on: connection)
         allFutures.append(contentsOf: insertNetworks)
 
         return Future<Void>.andAll(allFutures, eventLoop: connection.eventLoop)

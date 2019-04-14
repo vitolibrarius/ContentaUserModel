@@ -156,14 +156,13 @@ extension User {
         }
 
         try self.validate()
-        let allFutures : [EventLoopFuture<Void>] = [
-            try User.forUsernameOrEmail( username: username, email: email, on: connection ).map { peers in
-                if !peers.isEmpty { throw Abort(.alreadyReported, reason: "User already registered") }
-            }
-        ]
 
-        return Future<User>.andAll(allFutures, eventLoop: connection.eventLoop).transform(to: self)
+        return try User.forUsernameOrEmail( username: username, email: email, on: connection ).map { peers in
+            if !peers.isEmpty { throw Abort(.alreadyReported, reason: "User already registered") }
+            return self
+        }
     }
+
 
     public func didCreate(on connection: Database.Connection) throws -> Future<User> {
         return Future.map(on: connection) { self }
@@ -183,12 +182,14 @@ extension User {
 
     public func willDelete(on connection: Database.Connection) throws -> Future<User> {
         // check for related deletes
-        let allFutures : [EventLoopFuture<Void>] = [
-            try self.accessTokens.query(on: connection).delete(),
-            try self.networks.pivots(on: connection).delete()
-        ]
+        let a : EventLoopFuture<Void> = try self.accessTokens.query(on: connection).delete()
+        let b : EventLoopFuture<Void> = try self.networks.pivots(on: connection).delete()
 
-        return Future<User>.andAll(allFutures, eventLoop: connection.eventLoop).transform(to: self)
+        return a.then({_ in
+            b.then({
+                return Future.map(on: connection) { self }
+            })
+        })
     }
 }
 
