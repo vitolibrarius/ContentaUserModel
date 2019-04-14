@@ -1,3 +1,6 @@
+Version 0.4.6:
+* a8ce28d -  (HEAD -> master, origin/master, origin/HEAD) updated for swift 5 (Sat Apr 13 20:09:19 2019 -0600) <Vito Librarius>
+
 Version 0.4.5:
 * 1ac45a8 -  (HEAD -> master) Added access token type enums (Thu Jan 3 20:06:51 2019 -0700) <Vito Librarius>
 
